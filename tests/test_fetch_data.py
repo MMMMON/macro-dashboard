@@ -39,6 +39,24 @@ class SnapshotTests(unittest.TestCase):
         self.assertIsNone(result["last_date"])
         self.assertEqual(result["status"], "unavailable")
 
+    def test_cached_values_retain_actual_source(self):
+        result = feed.make_series({**self.meta, "source": "FRED"}, [],
+                                  {"data": self.points, "source": "Treasury", "symbol": "BC_10YEAR"},
+                                  self.start, self.end)
+        self.assertEqual(result["source"], "Treasury")
+        self.assertEqual(result["symbol"], "BC_10YEAR")
+
+    def test_breakeven_uses_common_dates_without_fill(self):
+        nominal = [{"time": "2026-01-28", "value": 4.2}, {"time": "2026-01-29", "value": 4.1}]
+        real = [{"time": "2026-01-28", "value": 1.8}, {"time": "2026-01-30", "value": 1.9}]
+        self.assertEqual(feed.breakeven_points(nominal, real), [{"time": "2026-01-28", "value": 2.4}])
+
+    def test_treasury_xml_filters_null_observations(self):
+        document = '''<feed xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices">
+        <m:properties><d:NEW_DATE>2026-01-28T00:00:00</d:NEW_DATE><d:TC_10YEAR>1.5</d:TC_10YEAR></m:properties>
+        <m:properties><d:NEW_DATE>2026-01-29T00:00:00</d:NEW_DATE><d:TC_10YEAR m:null="true"/></m:properties></feed>'''
+        self.assertEqual(feed.parse_treasury_xml(document, "TC_10YEAR", self.start, self.end), self.points[:1])
+
     def test_staleness(self):
         result = feed.make_series(self.meta, [{"time": "2026-01-01", "value": -0.1}], {}, self.start, self.end)
         self.assertTrue(result["stale"])
@@ -60,6 +78,7 @@ class SnapshotTests(unittest.TestCase):
             path.write_bytes(before)
             with patch('sys.argv', ['fetch_data.py', '--output', str(path)]), \
                  patch.object(feed, 'fetch_yahoo', return_value={}), \
+                 patch.object(feed, 'fetch_treasury_rates', return_value={}), \
                  patch.object(feed, 'fetch_fred_series', side_effect=RuntimeError), \
                  patch.object(feed, 'fetch_china10y', side_effect=RuntimeError):
                 with self.assertRaises(RuntimeError):

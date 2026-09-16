@@ -8,6 +8,8 @@ import json
 import math
 import os
 import time
+import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -18,6 +20,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 ROOT = Path(__file__).resolve().parent
+TREASURY_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml"
 YAHOO = {
     "btc": ("BTC-USD", "Bitcoin", "USD"),
     "eth": ("ETH-USD", "Ethereum", "USD"),
@@ -93,6 +96,52 @@ def fetch_fred_series(series_id: str, start: date, end: date, api_key=None):
     return clean_points(rows, start, end)
 
 
+def parse_treasury_xml(document, field, start, end):
+    ns = {"m": "http://schemas.microsoft.com/ado/2007/08/dataservices/metadata",
+          "d": "http://schemas.microsoft.com/ado/2007/08/dataservices"}
+    root = ET.fromstring(document)
+    rows = [(p.findtext("d:NEW_DATE", namespaces=ns), p.findtext(f"d:{field}", namespaces=ns))
+            for p in root.findall(".//m:properties", ns)]
+    return clean_points(rows, start, end)
+
+
+def breakeven_points(nominal, real):
+    """Nominal minus real yields in percentage points, only on common dates."""
+    real_by_day = {p["time"]: p["value"] for p in real}
+    return [{"time": p["time"], "value": round(p["value"] - real_by_day[p["time"]], 6)}
+            for p in nominal if p["time"] in real_by_day]
+
+
+def fetch_treasury_rates(start, end):
+    """Official keyless Treasury rates; replace whole histories, never splice sources."""
+    tasks = [(kind, field, year) for kind, field in [
+        ("daily_treasury_yield_curve", "BC_10YEAR"),
+        ("daily_treasury_real_yield_curve", "TC_10YEAR")]
+        for year in range(start.year, (end - timedelta(days=1)).year + 1)]
+
+    def fetch_year(task):
+        kind, field, year = task
+        with http_session() as session:
+            response = session.get(TREASURY_URL, params={
+                "data": kind, "field_tdr_date_value": year}, timeout=(10, 35))
+            if response.status_code != 200:
+                raise RuntimeError(f"Treasury HTTP {response.status_code}")
+            # Parse the whole requested year, then trim the assembled history below.
+            points = parse_treasury_xml(response.content, field, date(year, 1, 1), date(year + 1, 1, 1))
+            if not points:
+                raise RuntimeError(f"Treasury {year} returned no observations")
+            return field, points
+
+    grouped = {"BC_10YEAR": [], "TC_10YEAR": []}
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        for field, points in pool.map(fetch_year, tasks):
+            grouped[field].extend(points)
+    nominal, real = [clean_points(((p["time"], p["value"]) for p in grouped[field]), start, end)
+                     for field in ["BC_10YEAR", "TC_10YEAR"]]
+    return {"us10y": nominal, "real10y": real,
+            "breakeven10y": breakeven_points(nominal, real)}
+
+
 def fetch_china10y(start: date, end: date):
     """Daily ChinaBond sovereign 10Y curve; query in windows shorter than a year."""
     rows = []
@@ -166,6 +215,9 @@ def make_series(meta, points, old, start, end, error=None):
     else:
         points = previous
         status = "cached" if points else "unavailable"
+        if previous:
+            # Cached values retain the provenance of the source that produced them.
+            meta = {**meta, **{k: old[k] for k in ["source", "source_url", "symbol", "note"] if k in old}}
     last_date = points[-1]["time"] if points else None
     stale = bool(last_date and (end - date.fromisoformat(last_date)).days > meta.get("stale_days", 7))
     return {**meta, "status": status, "stale": stale, "last_date": last_date,
@@ -197,6 +249,7 @@ def main():
     previous = json.loads(args.output.read_text(encoding="utf-8")) if args.output.exists() else {}
     series = {}
     old = previous.get("series", {})
+    print("Fetching Yahoo daily closes...", flush=True)
     try:
         yahoo = fetch_yahoo(start, end)
     except Exception as exc:
@@ -209,16 +262,45 @@ def main():
                 "note": "日线复权收盘；期货为连续近月合约，换月可能跳变" if key in {"oil", "gold"} else "日线复权收盘"}
         series[key] = make_series(meta, yahoo.get(key, []), old.get(key, {}), start, end,
                                   "Yahoo 暂不可用")
+    treasury = {}
+    treasury_attempted = False
+    # With no API key, Treasury's official feed avoids FRED CSV blocking of hosted runners.
+    if not os.getenv("FRED_API_KEY"):
+        treasury_attempted = True
+        print("Fetching official Treasury nominal and real rates...", flush=True)
+        try:
+            treasury = fetch_treasury_rates(start, end)
+        except Exception as exc:
+            print(f"::warning::Treasury unavailable ({type(exc).__name__}); trying FRED")
     for key, (symbol, name) in FRED.items():
         error, points = None, []
-        try:
-            points = fetch_fred_series(symbol, start, end)
-        except Exception as exc:
-            error = f"FRED 暂不可用（{type(exc).__name__}）"
+        from_treasury = bool(treasury.get(key)) and not os.getenv("FRED_API_KEY")
+        if from_treasury:
+            points = treasury[key]
+        else:
+            try:
+                points = fetch_fred_series(symbol, start, end)
+            except Exception as exc:
+                error = f"FRED 暂不可用（{type(exc).__name__}）"
+        if not points:
+            if not treasury_attempted:
+                treasury_attempted = True
+                try:
+                    treasury = fetch_treasury_rates(start, end)
+                except Exception as exc:
+                    print(f"::warning::Treasury fallback failed ({type(exc).__name__})")
+            points = treasury.get(key, [])
+            from_treasury = bool(points)
         meta = {"name": name, "symbol": symbol, "unit": "%", "frequency": "daily",
                 "source": "FRED", "source_url": f"https://fred.stlouisfed.org/series/{symbol}",
                 "note": "工作日发布；收益率单位为百分比"}
+        if from_treasury:
+            meta.update(source="美国财政部 / U.S. Treasury", source_url="https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+                        symbol={"us10y": "BC_10YEAR", "real10y": "TC_10YEAR", "breakeven10y": "BC_10YEAR - TC_10YEAR"}[key],
+                        note="财政部 10Y 名义减实际收益率，仅取共同日期；非直接下载 FRED T10YIE" if key == "breakeven10y"
+                        else "美国财政部官方日度 10Y 收益率，单位为百分比")
         series[key] = make_series(meta, points, old.get(key, {}), start, end, error or "FRED 无有效观测")
+    print("Fetching ChinaBond sovereign curve...", flush=True)
     try:
         points, error = fetch_china10y(start, end), None
     except Exception as exc:

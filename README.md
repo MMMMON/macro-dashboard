@@ -1,5 +1,7 @@
 # Macro Atlas · 全球宏观看板
 
+网站：https://macro-dashboard-57g.pages.dev/ · 仓库：https://github.com/MMMMON/macro-dashboard
+
 纯 HTML5、Vanilla JavaScript、Tailwind CSS、TradingView Lightweight Charts。
 Python 抓取真实数据，GitHub Actions 每天更新 `data.json`，Cloudflare Pages 托管静态页面。浏览器不持有密钥，也不直接请求上游数据服务。
 
@@ -98,7 +100,9 @@ Yahoo 显式使用 `auto_adjust=True` 的复权收盘价。M7 展示七条独立
 fetch_fred_series("DGS10", date(2025, 1, 1), date(2026, 1, 1), api_key="YOUR_KEY")
 ```
 
-推荐将密钥存到 **GitHub Settings → Secrets and variables → Actions → New repository secret → FRED_API_KEY**。没有密钥时使用 FRED 官方公开 CSV 下载端点。密钥不写进 `data.json` 或前端；错误日志不输出携带密钥的请求 URL。
+可将密钥存到 **GitHub Settings → Secrets and variables → Actions → New repository secret → FRED_API_KEY**。配置密钥后优先使用 FRED API，失败时使用美国财政部官方 XML 备用源。没有密钥时优先使用财政部 XML，失败时尝试 FRED 公开 CSV。`fetch_fred_series` 单独调用且无密钥时仍读取 FRED CSV。密钥不写进 `data.json` 或前端；错误日志不输出携带密钥的请求 URL。
+
+财政部使用 `BC_10YEAR`（名义）和 `TC_10YEAR`（实际）日度收益率；通胀盈亏平衡率按共同日期的名义减实际收益率计算，不将它标为直接下载的 FRED T10YIE。切换来源会替换完整历史并更新来源标签，不拼接不同来源；缓存保留原始来源信息。该备用源解决实测 GitHub 托管运行器无法下载 FRED CSV 的问题，无需额外 API 密钥。
 
 中国国债直接读取中国债券信息网国债收益率曲线的 10 年期限日数据，按不足一年的日期窗口请求，无需虚构 FRED 中国系列，也不以美债数据替代。
 
@@ -153,6 +157,7 @@ npm run build
 - [Cloudflare GitHub 集成](https://developers.cloudflare.com/pages/configuration/git-integration/github-integration/)
 - [GitHub 定时工作流](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)
 - [FRED observations API](https://fred.stlouisfed.org/docs/api/fred/series_observations.html)
+- [美国财政部官方 XML 数据](https://home.treasury.gov/treasury-daily-interest-rate-xml-feed)
 - [Yahoo 数据参数](https://ranaroussi.github.io/yfinance/reference/api/yfinance.download.html)
 - [中国债券信息网](https://yield.chinabond.com.cn/)
 - [Lightweight Charts](https://tradingview.github.io/lightweight-charts/)
