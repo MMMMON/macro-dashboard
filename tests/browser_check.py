@@ -33,8 +33,10 @@ with sync_playwright() as p:
     for label in ['1M', '3M', '1Y', 'ALL', '6M']:
         page.locator(f'button[data-range="{label}"]').click()
     page.locator('.legend button').first.click()
-    assert page.locator('.legend button').first.get_attribute('aria-pressed') == 'false'
+    assert page.locator('.legend button').first.get_attribute('aria-pressed') == 'true'
+    assert page.locator('.chart-card').first.evaluate("node => node.classList.contains('has-focus')")
     page.locator('.legend button').first.click()
+    assert page.locator('.legend button').first.get_attribute('aria-pressed') == 'false'
     page.screenshot(path=str(artifacts / 'dashboard-desktop.png'), full_page=True)
     page.set_viewport_size({"width": 390, "height": 844})
     page.wait_for_timeout(400)

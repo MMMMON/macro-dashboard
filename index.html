@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0b1114">
+  <meta name="theme-color" content="#f4f0e8">
   <meta name="description" content="每日更新的全球宏观市场看板：数字资产、国债、股市、黄金、美元与通胀预期。">
   <title>Macro Atlas · 全球宏观看板</title>
   <link rel="stylesheet" href="./assets/styles.css">
@@ -30,12 +30,13 @@
         <button type="button" data-range="1M" aria-pressed="false">1M</button><button type="button" data-range="3M" aria-pressed="false">3M</button><button type="button" data-range="6M" aria-pressed="true">6M</button><button type="button" data-range="1Y" aria-pressed="false">1Y</button><button type="button" data-range="ALL" aria-pressed="false">全部</button>
       </div><button type="button" id="refresh" class="refresh-button" title="重新读取最近一次自动更新的数据">↻ <span>刷新快照</span></button></div>
     </section>
+    <p class="reading-guide"><span>阅读方式</span>悬停图例识别曲线，点击进入单线聚焦；再次点击或选择“全部曲线”即可恢复。</p>
     <section id="dashboard" class="grid grid-cols-1 xl:grid-cols-2 gap-4" aria-label="八大宏观图表"></section>
     <section id="methodology" class="methodology">
       <div class="flex items-center gap-3"><span class="eyebrow">READ THE DATA</span><h2>数据与口径</h2></div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-5">
         <p><strong>每日快照</strong>每天北京时间 08:17 计划更新，任务可能延迟。仅显示已结束日期的日线；节假日、停市日不补值。每条曲线单独显示最新观测日期。</p>
-        <p><strong>可比性</strong>M7 与全球股指按所选区间首个共同交易日归一至 100。其他图表显示原值；双轴以图例和轴标签区分，尺度不能直接比较。</p>
+        <p><strong>可比性</strong>M7 与全球股指按所选区间首个共同交易日归一至 100。其他图表显示原值；双轴以图例和轴标签区分，尺度不能直接比较。密集图表可点击图例单独查看。</p>
         <p><strong>数据来源</strong>价格来自 Yahoo Finance，采用复权收盘；黄金和原油为期货近月连续数据。美债来自 FRED 或美国财政部，财政部口径的通胀预期由名义减实际收益率计算。中国国债来自中国债券信息网。各指标注明实际来源。</p>
       </div>
       <details class="source-details"><summary>展开各指标来源、日期和获取状态</summary><div id="source-list" class="source-list"></div></details>
