@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1114">
+  <meta name="description" content="每日更新的全球宏观市场看板：数字资产、国债、股市、黄金、美元与通胀预期。">
+  <title>Macro Atlas · 全球宏观看板</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script defer src="./assets/lightweight-charts.js"></script>
+  <script defer src="./main.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="mx-auto max-w-[1800px] px-4 sm:px-8 flex items-center justify-between gap-4">
+      <a class="brand" href="./" aria-label="Macro Atlas 首页"><span class="brand-mark">M<span>∕</span></span> MACRO ATLAS <span class="brand-divider">/</span><span class="brand-sub">宏观观察站</span></a>
+      <a class="method-link" href="#methodology">数据口径 <span>↗</span></a>
+    </div>
+  </header>
+  <main class="mx-auto max-w-[1800px] px-4 sm:px-8 pb-10">
+    <section class="intro flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+      <div><p class="eyebrow"><span class="status-dot"></span> THE WORLD, IN PERSPECTIVE</p><h1>全球市场，一览脉络<span>。</span></h1><p class="intro-copy">从利率到风险资产，跟踪全球资金的方向。</p></div>
+      <div class="update-info"><p id="update-status" role="status">正在读取市场快照…</p><p>每日更新 · 日线数据 · 非实时行情</p></div>
+    </section>
+    <div id="error-banner" class="notice error" role="alert" hidden></div>
+    <section id="overview" aria-label="核心市场概览" class="grid grid-cols-2 lg:grid-cols-4 gap-3"></section>
+    <section class="toolbar flex flex-wrap items-center justify-between gap-4" aria-label="看板控制">
+      <div class="flex items-center gap-3"><h2>市场全景</h2><span class="count-tag">08 / PANELS</span></div>
+      <div class="flex flex-wrap items-center gap-3"><div id="range-control" class="segmented" aria-label="图表时间范围">
+        <button type="button" data-range="1M" aria-pressed="false">1M</button><button type="button" data-range="3M" aria-pressed="false">3M</button><button type="button" data-range="6M" aria-pressed="true">6M</button><button type="button" data-range="1Y" aria-pressed="false">1Y</button><button type="button" data-range="ALL" aria-pressed="false">全部</button>
+      </div><button type="button" id="refresh" class="refresh-button" title="重新读取最近一次自动更新的数据">↻ <span>刷新快照</span></button></div>
+    </section>
+    <section id="dashboard" class="grid grid-cols-1 xl:grid-cols-2 gap-4" aria-label="八大宏观图表"></section>
+    <section id="methodology" class="methodology">
+      <div class="flex items-center gap-3"><span class="eyebrow">READ THE DATA</span><h2>数据与口径</h2></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-5">
+        <p><strong>每日快照</strong>每天北京时间 08:17 计划更新，任务可能延迟。仅显示已结束日期的日线；节假日、停市日不补值。每条曲线单独显示最新观测日期。</p>
+        <p><strong>可比性</strong>M7 与全球股指按所选区间首个共同交易日归一至 100。其他图表显示原值；双轴以图例和轴标签区分，尺度不能直接比较。</p>
+        <p><strong>数据来源</strong>价格来自 Yahoo Finance，采用复权收盘；黄金和原油为期货近月连续数据。美债来自 FRED，中国国债来自中国债券信息网。失败时保留旧值并提示。</p>
+      </div>
+      <details class="source-details"><summary>展开各指标来源、日期和获取状态</summary><div id="source-list" class="source-list"></div></details>
+    </section>
+    <footer class="flex flex-col sm:flex-row justify-between gap-3"><span>MACRO ATLAS <span class="footer-muted">/ 全球宏观观察站</span></span><span>Charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts™ ↗</a></span></footer>
+  </main>
+  <noscript>此看板需要启用 JavaScript 才能显示图表。</noscript>
+</body>
+</html>

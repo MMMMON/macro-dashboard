@@ -1,0 +1,11 @@
+{
+  "name": "macro-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "npx @tailwindcss/cli -i ./styles.css -o ./assets/styles.css --minify && node build.mjs",
+    "preview": "python -m http.server 8080 --directory public"
+  },
+  "dependencies": { "lightweight-charts": "5.2.1" },
+  "devDependencies": { "@tailwindcss/cli": "4.3.3", "tailwindcss": "4.3.3" }
+}
