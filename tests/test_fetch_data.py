@@ -1,7 +1,7 @@
 import json
 import tempfile
 import unittest
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
@@ -80,10 +80,80 @@ class SnapshotTests(unittest.TestCase):
                  patch.object(feed, 'fetch_yahoo', return_value={}), \
                  patch.object(feed, 'fetch_treasury_rates', return_value={}), \
                  patch.object(feed, 'fetch_fred_series', side_effect=RuntimeError), \
+                 patch.object(feed, 'fetch_ofr_series', side_effect=RuntimeError), \
+                 patch.object(feed, 'fetch_tbill_events', side_effect=RuntimeError), \
                  patch.object(feed, 'fetch_china10y', side_effect=RuntimeError):
                 with self.assertRaises(RuntimeError):
                     feed.main()
             self.assertEqual(path.read_bytes(), before)
+
+
+class LiquidityPQGTests(unittest.TestCase):
+    def test_q_score_keeps_template_reserve_change_and_shrink_adjustment(self):
+        score, detail = feed.score_q(1, 3.3, .05, True)
+        self.assertEqual(score, 47)
+        self.assertEqual(detail, {"on_rrp": 18, "reserves": 18, "reserve_change": 14, "balance_sheet_adjustment": -3})
+
+    def test_p_score_uses_35_point_template_weights(self):
+        score, detail = feed.score_p(61, 3.5, 1.49)
+        self.assertEqual(score, 35)
+        self.assertEqual(detail, {"curve": 14, "ois": 9, "tips": 12})
+
+    def test_g_score_and_status_boundaries(self):
+        self.assertEqual(feed.score_g(-.1, 1, 1)[0], 15)
+        self.assertEqual(feed.status_for_score(80), "🟢宽松")
+        self.assertEqual(feed.status_for_score(60), "🟡中性偏宽")
+        self.assertEqual(feed.status_for_score(40), "🟠脆弱过渡")
+        self.assertEqual(feed.status_for_score(39), "🔴缺氧紧缩")
+        self.assertEqual(feed.status_for_score(None), "待核验")
+
+    def test_repo_structure_thresholds(self):
+        days = [date(2026, 1, 1) + timedelta(days=i) for i in range(20)]
+        repo = {}
+        for key in feed.OFR_REPO:
+            values = []
+            for index, day in enumerate(days):
+                value = 100.0 if key.endswith("total") else 92.0
+                if key.endswith("overnight") and index >= 10:
+                    value = 86.0
+                values.append({"time": day.isoformat(), "value": value})
+            repo[key] = {"data": values}
+        code, details = feed.repo_structure(repo, days[-1])
+        self.assertEqual(code, 2)
+        self.assertEqual(details["label"], "定期增多")
+
+    def test_tbill_strong_siphon_threshold(self):
+        events = {"data": [{"time": "2026-01-05", "value": 50_000_000_000}]}
+        code, details = feed.tbill_structure(events, date(2026, 1, 15))
+        self.assertEqual(code, 2)
+        self.assertEqual(details["label"], "强虹吸")
+
+    def test_cme_forward_requires_explicit_verified_source(self):
+        with patch.dict('os.environ', {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "CME SR3"):
+                feed.fetch_cme_sr3_forward(date(2026, 1, 1), date(2026, 2, 1))
+
+    def test_cme_forward_weights_sr3_contract_reference_periods(self):
+        class Response:
+            status_code = 200
+
+            @staticmethod
+            def json():
+                return {"contracts": [
+                    {"time": "2026-01-01", "reference_start": "2027-01-01", "reference_end": "2027-04-01", "settlement": 96},
+                    {"time": "2026-01-01", "reference_start": "2027-04-01", "reference_end": "2027-07-01", "settlement": 95},
+                ]}
+
+        class Session:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def get(self, *args, **kwargs): return Response()
+
+        with patch.dict('os.environ', {'CME_SR3_FORWARD_URL': 'https://reviewed.example/sr3.json'}, clear=True), \
+             patch.object(feed, 'http_session', return_value=Session()):
+            result = feed.fetch_cme_sr3_forward(date(2026, 1, 1), date(2026, 2, 1))
+        self.assertEqual(result[0]["time"], "2026-01-01")
+        self.assertAlmostEqual(result[0]["value"], 4.502762, places=6)
 
 
 if __name__ == '__main__':

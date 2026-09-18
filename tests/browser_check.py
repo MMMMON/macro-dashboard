@@ -57,5 +57,17 @@ with sync_playwright() as p:
     page.locator('#refresh').click()
     expect(page.locator('#update-status')).to_contain_text('快照生成')
     assert not errors, errors
+    page.set_viewport_size({"width": 1440, "height": 1100})
+    page.goto((live_url.rstrip('/') + '/liquidity.html') if live_url else 'http://macro-dashboard.test/liquidity.html', wait_until='networkidle')
+    expect(page.locator('#pqg-update-status')).to_contain_text('快照生成')
+    assert page.locator('.pqg-module').count() == 3
+    assert page.locator('.pqg-plot canvas').count() >= 3
+    assert page.locator('#weekly-table tr').count() == 8
+    assert page.locator('#weekly-table').inner_text().count('待核验') >= 1
+    page.screenshot(path=str(artifacts / 'liquidity-desktop.png'), full_page=True)
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.wait_for_timeout(400)
+    assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')
+    page.screenshot(path=str(artifacts / 'liquidity-mobile.png'), full_page=True)
     print(json.dumps({"panels": 8, "desktop": "pass", "mobile": "pass", "refresh_failure": "pass", "initial_failure_recovery": "pass", "console_errors": errors}))
     browser.close()

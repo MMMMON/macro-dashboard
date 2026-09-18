@@ -8,8 +8,9 @@ Python 抓取真实数据，GitHub Actions 每天更新 `data.json`，Cloudflare
 ## 文件
 
 ```text
-index.html                    页面、8 个主题入口与口径说明
+index.html / liquidity.html   全球宏观看板与美元流动性 PQG 页面
 main.js                       图表初始化、双轴、时间范围、图例和异常状态
+liquidity.js                  PQG 三相评分、周度趋势与数据下钻
 styles.css                    Tailwind 输入与自定义样式
 assets/styles.css             已编译样式
 data.json                     首次真实抓取的完整数据快照
@@ -69,7 +70,7 @@ Windows 若虚拟环境路径包含中文，curl 可能无法读取 CA 文件；
 
 ### 每日更新时间
 
-`cron: '17 0 * * *'` = UTC 00:17 = 北京时间 08:17，每天包含周末执行。首次上传和修改抓取脚本、依赖或工作流时也会触发一次更新（push 规则默认使用 main；如改名请同步修改）。GitHub 定时任务可能延迟；这不是实时行情系统。公开仓库连续 60 天无活动时，GitHub 可能停用定时任务，需在 Actions 中重新启用。
+`cron: '0 21 * * 1-5'` = 工作日 UTC 21:00。首次上传和修改抓取脚本、依赖或工作流时也会触发一次更新（push 规则默认使用 main；如改名请同步修改）。GitHub 定时任务可能延迟；这不是实时行情系统。公开仓库连续 60 天无活动时，GitHub 可能停用定时任务，需在 Actions 中重新启用。
 
 `data.json` 有变化才提交；仅运行时间变化不会制造提交。Cloudflare Git 集成监听仓库提交并自动部署。`GITHUB_TOKEN` 推送不会触发另一个 GitHub Actions push 工作流，因此本项目不依赖第二个 push 部署工作流，而由 Cloudflare Git 集成执行构建。
 
@@ -91,6 +92,14 @@ Windows 若虚拟环境路径包含中文，curl 可能无法读取 CA 文件；
 Yahoo 显式使用 `auto_adjust=True` 的复权收盘价。M7 展示七条独立曲线，不冒充官方 M7 指数；全球指数按本币口径归一，不代表统一币种的投资回报。黄金、原油是连续近月期货，换月可能跳变，非现货报价。T10YIE 为市场隐含盈亏平衡通胀率，非已公布 CPI。
 
 全部日期为 `YYYY-MM-DD`，数值去除 NaN/Infinity，按日去重升序，保留合法负利率。排除当前 UTC 日期，避免把尚未结束的日线当作收盘价。节假日不前向填充。每个指标独立记录最新观测时间，不能用整个文件生成时间代表数据实时性。
+
+### 美元流动性 PQG
+
+`/liquidity.html` 以 Q（资金数量）、P（资金价格）及 g（传导结构）展示最近 8 个 ISO 周度快照，并公开逐项来源、最新观测日、缓存/延迟状态及评分拆解。日度指标优先选周五、其次周四；准备金和 Fed 总资产取 H.4.1 周三值。来源为 FRED、OFR Short-term Funding Monitor、Treasury FiscalData 与 CME SR3。
+
+Repo 规则：最近两个 10 个交易日窗口，定期成交占比上升至少 2 个百分点为“定期增多”；否则清算 Repo 占比变化绝对值至少 5 个百分点为“结构性分化”；其余为“隔夜偏多”。T-bill 规则：近 14 个日历日（约 10 个交易日）净发行至少 500 亿美元为“强虹吸”。
+
+CME 历史结算接口需要相应许可。为启用 1Y1Y SOFR 远期代理，请将经审核、来自 CME SR3 季度合约结算价的公开 JSON 导出地址保存为仓库 secret `CME_SR3_FORWARD_URL`。抓取器按观察日后第 13–24 个月的合约参考期重叠天数加权推导该代理；未配置、延迟或格式不完整时，绝不以其他利率替代，P 分、综合分和状态均显示“待核验”。
 
 ### FRED API
 

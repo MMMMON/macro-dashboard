@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f0e8">
+  <meta name="description" content="每日更新的美元流动性 PQG 看板：资金数量、资金价格与传导结构。">
+  <title>美元流动性 PQG · Macro Atlas</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script defer src="./assets/lightweight-charts.js"></script>
+  <script defer src="./liquidity.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <div class="mx-auto max-w-[1800px] px-4 sm:px-8 flex items-center justify-between gap-4">
+      <a class="brand" href="./" aria-label="返回 Macro Atlas 首页"><span class="brand-mark">M<span>∕</span></span> MACRO ATLAS <span class="brand-divider">/</span><span class="brand-sub">美元流动性 PQG</span></a>
+      <div class="header-links"><a class="method-link" href="./">全球宏观 <span>↗</span></a><a class="method-link" href="#methodology">口径与来源 <span>↗</span></a></div>
+    </div>
+  </header>
+  <main class="mx-auto max-w-[1800px] px-4 sm:px-8 pb-10">
+    <section class="intro flex flex-col lg:flex-row lg:items-end justify-between gap-5">
+      <div><p class="eyebrow"><span class="status-dot"></span> USD LIQUIDITY / WEEKLY SIGNAL</p><h1>美元流动性，先看结构<span>。</span></h1><p class="intro-copy">Q 看资金数量，P 看资金价格，g 看资金在回购与国库券市场中的传导。</p></div>
+      <div class="update-info"><p id="pqg-update-status" role="status">正在读取流动性快照…</p><p>工作日 21:00 UTC 更新 · 仅供研究，不是实时行情</p></div>
+    </section>
+    <div id="pqg-error" class="notice error" role="alert" hidden></div>
+    <section id="pqg-summary" class="pqg-summary" aria-label="PQG 当前状态"></section>
+    <section id="pqg-modules" class="pqg-modules" aria-label="PQG 三模块趋势"></section>
+    <section id="weekly-table-section" class="pqg-detail" aria-labelledby="weekly-title">
+      <div class="section-heading"><div><p class="eyebrow">LAYER 02</p><h2 id="weekly-title">评分与数据下钻</h2></div><p>最近 8 周；每日序列优先取周五、其次周四，H.4.1 采用周三发布值。</p></div>
+      <div class="table-wrap"><table class="pqg-table"><thead><tr><th>周度</th><th>ON RRP</th><th>准备金</th><th>2Y–10Y</th><th>1Y1Y 代理</th><th>10Y TIPS</th><th>SOFR–IORB</th><th>Repo</th><th>T-bill</th><th>Q</th><th>P</th><th>g</th><th>综合</th><th>状态</th></tr></thead><tbody id="weekly-table"></tbody></table></div>
+    </section>
+    <section id="methodology" class="methodology pqg-methodology">
+      <div class="section-heading"><div><p class="eyebrow">READ THE DATA</p><h2>口径、规则与来源</h2></div><p>缺失、缓存或延迟的数据不会被替换为零或其他利率；受影响的总分显示待核验。</p></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-5">
+        <p><strong>Q / 资金数量</strong>ON RRP、准备金及准备金周变动组成基础分；Fed 总资产连续四周收缩，Q 分扣 3。</p>
+        <p><strong>P / 资金价格</strong>2Y–10Y、1Y1Y SOFR 远期代理与 10Y TIPS。CME SR3 代理不可用时，P 分不计算。</p>
+        <p><strong>g / 传导结构</strong>SOFR–IORB、近两段 10 个交易日 Repo 结构及 10 个交易日 T-bill 净供给共同评分。</p>
+      </div>
+      <details class="source-details"><summary>展开逐项来源、日期、获取状态与评分拆解</summary><div id="pqg-sources" class="source-list"></div></details>
+    </section>
+    <footer class="flex flex-col sm:flex-row justify-between gap-3"><span>MACRO ATLAS <span class="footer-muted">/ USD LIQUIDITY PQG</span></span><span>Charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts™ ↗</a></span></footer>
+  </main>
+  <noscript>此看板需要启用 JavaScript 才能显示图表。</noscript>
+</body>
+</html>

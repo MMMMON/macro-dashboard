@@ -1,6 +1,6 @@
 import { mkdir, copyFile } from 'node:fs/promises';
 await mkdir('public/assets', { recursive: true });
-for (const file of ['index.html', 'main.js', 'data.json', '_headers']) {
+for (const file of ['index.html', 'main.js', 'liquidity.html', 'liquidity.js', 'data.json', '_headers']) {
   await copyFile(file, `public/${file}`);
 }
 await copyFile('assets/styles.css', 'public/assets/styles.css');

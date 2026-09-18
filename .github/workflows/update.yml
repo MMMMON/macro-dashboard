@@ -8,10 +8,9 @@ on:
       - requirements.txt
       - .github/workflows/update.yml
   schedule:
-    # Primary: 00:17 UTC = 08:17 Beijing.
-    - cron: '17 0 * * *'
-    # Backup: 02:47 UTC = 10:47 Beijing, in case GitHub delays or drops the first run.
-    - cron: '47 2 * * *'
+    # Primary: 21:00 UTC on US business days. This captures the published
+    # SOFR and most OFR funding-market data before the next European morning.
+    - cron: '0 21 * * 1-5'
   workflow_dispatch:
 
 permissions:
@@ -41,6 +40,9 @@ jobs:
       - name: Fetch daily snapshot
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          # Optional reviewed public SR3-settlement export. When absent, the
+          # page deliberately marks the P block and total score 待核验.
+          CME_SR3_FORWARD_URL: ${{ secrets.CME_SR3_FORWARD_URL }}
         run: python -u fetch_data.py
       - name: Commit changed snapshot and push default branch
         env:

@@ -238,7 +238,7 @@ function renderSources() {
 }
 
 function validateSnapshot(data) {
-  if (data?.schema_version !== 1 || !data.series || !Number.isFinite(Date.parse(data.generated_at))) throw new Error('数据文件格式不正确');
+  if (!Number.isInteger(data?.schema_version) || data.schema_version < 1 || !data.series || !Number.isFinite(Date.parse(data.generated_at))) throw new Error('数据文件格式不正确');
   for (const key of new Set(PANELS.flatMap(p => p.keys))) {
     const s = data.series[key];
     if (!s || !Array.isArray(s.data)) throw new Error(`缺少指标 ${key}`);
