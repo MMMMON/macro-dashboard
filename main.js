@@ -151,7 +151,7 @@ function rangeStart(last) {
 }
 
 function isDelayed(item) {
-  return item?.last_date && (Date.now() - Date.parse(`${item.last_date}T00:00:00Z`)) / 86400000 > (item.stale_days || 7);
+  return !!item?.stale || (item?.last_date && (Date.now() - Date.parse(`${item.last_date}T00:00:00Z`)) / 86400000 > (item.stale_days || 7));
 }
 
 function renderCharts() {
@@ -217,7 +217,7 @@ function renderOverview() {
     top.append(element('span', '', s?.name || key), element('span', 'stat-symbol', s?.symbol || ''));
     const value = element('p', 'stat-value', latest ? `${key === 'btc' ? '$' : ''}${number(latest.value)}${key === 'us10y' ? '%' : ''}` : '—');
     const bottom = element('div', 'stat-bottom');
-    bottom.append(element('span', diff === null ? 'neutral' : diff >= 0 ? 'positive' : 'negative', change), element('span', '', `${latest?.time || '暂无数据'} · ${s?.status !== 'ok' || isDelayed(s) ? '缓存/延迟' : '较前值'}`));
+    bottom.append(element('span', diff === null ? 'neutral' : diff >= 0 ? 'positive' : 'negative', change), element('span', '', `${latest?.time || '暂无数据'} · ${s?.status !== 'ok' || isDelayed(s) ? '休市/延迟' : '较前值'}`));
     card.append(top, value, bottom);
     $('overview').append(card);
   }
@@ -231,7 +231,7 @@ function renderSources() {
     if (/^https:\/\//.test(s.source_url)) a.href = s.source_url;
     a.target = '_blank'; a.rel = 'noopener noreferrer';
     row.append(a, element('div', '', `${s.source} · ${s.unit} · ${s.frequency === 'daily' ? '日度' : s.frequency}`),
-      element('div', '', `最新 ${s.last_date || '无数据'} · ${{ ok: '获取成功', cached: '使用缓存', unavailable: '暂不可用' }[s.status]}${isDelayed(s) ? ' · 数据延迟' : ''}`),
+      element('div', '', `最新 ${s.last_date || '无数据'} · ${{ ok: '获取成功', cached: '使用缓存', unavailable: '暂不可用' }[s.status]}${isDelayed(s) ? ' · 休市或延迟' : ''}`),
       element('div', '', s.note || ''), element('div', '', s.message || ''));
     $('source-list').append(row);
   }
@@ -262,7 +262,13 @@ async function loadData() {
     snapshot = next;
     renderCharts(); renderOverview(); renderSources();
     const updated = new Date(snapshot.generated_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false });
-    $('update-status').textContent = `快照生成 ${updated} 北京时间`;
+    $('update-status').textContent = `自动任务运行 ${updated} 北京时间`;
+    const observations = Object.values(snapshot.series).map(item => item.last_date).filter(Boolean).sort();
+    const firstObservation = observations[0];
+    const lastObservation = observations.at(-1);
+    $('observation-status').textContent = firstObservation === lastObservation
+      ? `行情最新观测 ${lastObservation} · 日线数据 · 非实时行情`
+      : `各指标最新观测 ${firstObservation} 至 ${lastObservation} · 日线数据 · 非实时行情`;
     const old = Date.now() - Date.parse(snapshot.generated_at) > 3 * 86400000;
     $('error-banner').hidden = !old;
     if (old) $('error-banner').textContent = '快照已超过 3 天未变化，请检查自动更新任务；各指标实际日期见图例及数据口径。';

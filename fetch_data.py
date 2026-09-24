@@ -238,7 +238,17 @@ def make_series(meta, points, old, start, end, error=None):
             # Cached values retain the provenance of the source that produced them.
             meta = {**meta, **{k: old[k] for k in ["source", "source_url", "symbol", "note"] if k in old}}
     last_date = points[-1]["time"] if points else None
-    stale = bool(last_date and (end - date.fromisoformat(last_date)).days > meta.get("stale_days", 7))
+    stale = False
+    if last_date:
+        last_day = date.fromisoformat(last_date)
+        if "stale_business_days" in meta:
+            missing_business_days = sum(
+                (last_day + timedelta(days=offset)).weekday() < 5
+                for offset in range(1, (end - last_day).days)
+            )
+            stale = missing_business_days > meta["stale_business_days"]
+        else:
+            stale = (end - last_day).days > meta.get("stale_days", 7)
     return {**meta, "status": status, "stale": stale, "last_date": last_date,
             "message": error if status != "ok" else None, "data": points}
 
@@ -540,9 +550,11 @@ def main():
             print(f"::warning::Yahoo batch failed ({type(exc).__name__})")
     for key, (symbol, name, unit) in YAHOO.items():
         meta = {"name": name, "symbol": symbol, "unit": unit, "frequency": "daily",
-                "source": "Yahoo Finance / yfinance", "stale_days": 3 if key in {"btc", "eth"} else 7,
+                "source": "Yahoo Finance / yfinance", "stale_days": 1 if key in {"btc", "eth"} else 7,
                 "source_url": f"https://finance.yahoo.com/quote/{symbol}/",
                 "note": "日线复权收盘；期货为连续近月合约，换月可能跳变" if key in {"oil", "gold"} else "日线复权收盘"}
+        if key not in {"btc", "eth"}:
+            meta["stale_business_days"] = 1
         series[key] = make_series(meta, yahoo.get(key, []), old.get(key, {}), start, end,
                                   "Yahoo 暂不可用")
     treasury = {}

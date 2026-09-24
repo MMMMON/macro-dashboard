@@ -8,9 +8,11 @@ on:
       - requirements.txt
       - .github/workflows/update.yml
   schedule:
-    # Primary: 21:00 UTC on US business days. This captures the published
-    # SOFR and most OFR funding-market data before the next European morning.
-    - cron: '0 21 * * 1-5'
+    # 00:47 UTC is after the UTC daily boundary, so the previous US close is
+    # included instead of being excluded as an unfinished current-day candle.
+    - cron: '47 0 * * *'
+    # Refresh official rates and funding-market releases later in the day.
+    - cron: '17 14 * * 1-5'
   workflow_dispatch:
 
 permissions:

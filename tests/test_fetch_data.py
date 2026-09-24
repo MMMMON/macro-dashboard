@@ -62,6 +62,15 @@ class SnapshotTests(unittest.TestCase):
         self.assertTrue(result["stale"])
         self.assertEqual(result["data"][0]["value"], -0.1)
 
+    def test_business_day_staleness_ignores_weekend_but_flags_missing_sessions(self):
+        meta = {**self.meta, "stale_business_days": 1}
+        weekend = feed.make_series(meta, [{"time": "2026-01-30", "value": 1}], {},
+                                   date(2026, 1, 1), date(2026, 2, 2))
+        delayed = feed.make_series(meta, [{"time": "2026-01-28", "value": 1}], {},
+                                   date(2026, 1, 1), date(2026, 2, 2))
+        self.assertFalse(weekend["stale"])
+        self.assertTrue(delayed["stale"])
+
     def test_unchanged_snapshot_is_byte_identical(self):
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / "data.json"
