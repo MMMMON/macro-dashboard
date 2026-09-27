@@ -1,6 +1,12 @@
 name: Update weekly economic calendar
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - fetch_economic_calendar.py
+      - economic_calendar.json
+      - .github/workflows/economic-calendar.yml
   schedule:
     # Europe/Berlin Sunday 00:00 is Saturday 22:00 UTC in summer and
     # Saturday 23:00 UTC in winter. The script validates local time.
