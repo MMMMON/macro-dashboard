@@ -1,5 +1,8 @@
 /data.json
   Cache-Control: no-cache, max-age=0, must-revalidate
+/economic_calendar.json
+  Cache-Control: no-cache, max-age=0, must-revalidate
+  Access-Control-Allow-Origin: *
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
