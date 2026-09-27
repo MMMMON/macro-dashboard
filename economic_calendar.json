@@ -1,7 +1,7 @@
 {
   "weekStart": "2026-09-28",
   "weekEnd": "2026-10-04",
-  "generatedAt": "2026-09-27T10:20:41.187681Z",
+  "generatedAt": "2026-09-27T12:46:44.107915Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
@@ -564,5 +564,19 @@
         "high"
       ]
     }
-  ]
+  ],
+  "focus": {
+    "mainLine": {
+      "title": "通胀与就业双重定价",
+      "detail": "周三 14:30 美国核心 PCE 物价指数；周五 14:30 美国非农就业人数"
+    },
+    "policyFocus": {
+      "title": "澳大利亚现金利率决议 · 周二 06:30",
+      "detail": "预期 4.60%，前值 4.35%"
+    },
+    "specialAttention": {
+      "title": "美国非农就业人数 · 周五 14:30",
+      "detail": "预期 98K，前值 162K"
+    }
+  }
 }
