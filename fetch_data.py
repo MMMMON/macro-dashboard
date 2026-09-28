@@ -55,6 +55,12 @@ LIQUIDITY_FRED = {
     "sofr": ("SOFR", "SOFR", "%", 1),
     "iorb": ("IORB", "IORB", "%", 1),
     "fed_assets": ("WALCL", "Fed 总资产", "T", 1 / 1_000_000),
+    "tga": ("WDTGAL", "美国财政部 TGA", "T", 1 / 1_000_000),
+    "srf": ("RPTSYD", "Fed 回购投放（SRF/临时操作）", "T", 1 / 1_000_000),
+    "dgs2": ("DGS2", "美国 2Y 国债收益率", "%", 1),
+    "dgs5": ("DGS5", "美国 5Y 国债收益率", "%", 1),
+    "dgs10": ("DGS10", "美国 10Y 国债收益率", "%", 1),
+    "dgs30": ("DGS30", "美国 30Y 国债收益率", "%", 1),
 }
 OFR_BASE = "https://data.financialresearch.gov/v1"
 OFR_REPO = {
@@ -350,6 +356,18 @@ def fetch_cme_sr3_forward(start: date, end: date):
     return clean_points(((point["time"], point["value"]) for point in points), start, end)
 
 
+def fetch_acm_10y_term_premium(start: date, end: date):
+    """New York Fed ACM 10Y term-premium reference series (monthly download)."""
+    url = "https://www.newyorkfed.org/medialibrary/media/research/data_indicators/acmPlot_data.csv"
+    with http_session() as session:
+        response = session.get(url, timeout=(10, 35))
+        if response.status_code != 200:
+            raise RuntimeError(f"New York Fed ACM HTTP {response.status_code}")
+        reader = csv.DictReader(io.StringIO(response.text))
+        rows = [(row.get("RunDates"), row.get("TERMYld")) for row in reader]
+    return clean_points(rows, start, end)
+
+
 def point_in_window(series, start: date, end: date):
     candidates = [point for point in series.get("data", [])
                   if start.isoformat() <= point["time"] <= end.isoformat()]
@@ -617,9 +635,16 @@ def main():
             points, error = [], f"FRED 暂不可用（{type(exc).__name__}）"
         liquidity_series[key] = make_series({
             "name": name, "symbol": symbol, "unit": unit,
-            "frequency": "weekly" if key in {"reserves", "fed_assets"} else "daily",
+            "frequency": "weekly" if key in {"reserves", "fed_assets", "tga"} else "daily",
             "source": "FRED", "source_url": f"https://fred.stlouisfed.org/series/{symbol}",
-            "note": "H.4.1 周三周均值" if key == "reserves" else "H.4.1 周三余额" if key == "fed_assets" else "最近有效交易日值",
+            "proxy": key == "srf",
+            "note": (
+                "H.4.1 周三周均值" if key == "reserves" else
+                "H.4.1 周三余额" if key == "fed_assets" else
+                "H.4.1 周三余额；并非财政部每日现金表" if key == "tga" else
+                "Fed 临时回购余额，作为 SRF 工具响应代理；不把设定利率当使用量" if key == "srf" else
+                "最近有效交易日值"
+            ),
         }, points, liquidity_old.get(key, {}), start, end, error or "FRED 无有效观测")
 
     try:
@@ -631,6 +656,19 @@ def main():
         "source": "CME Group SR3", "source_url": "https://www.cmegroup.com/markets/interest-rates/stirs/three-month-sofr.html",
         "note": "以 SR3 结算价推导的 1Y1Y SOFR 远期代理；并非交易终端原始 OIS",
     }, points, liquidity_old.get("ois_1y1y", {}), start, end, error or "CME SR3 远期代理无有效观测")
+
+    try:
+        points, error = fetch_acm_10y_term_premium(start, end), None
+    except Exception as exc:
+        points, error = [], f"纽约联储 ACM 暂不可用（{type(exc).__name__}）"
+    liquidity_series["acm_10y"] = make_series({
+        "name": "10Y ACM 期限溢价参考", "symbol": "ACM 10Y", "unit": "%", "frequency": "monthly",
+        "source": "Federal Reserve Bank of New York",
+        "source_url": "https://www.newyorkfed.org/research/data_indicators/term-premia-tabs",
+        "proxy": True,
+        "stale_days": 45,
+        "note": "模型估算且可能修订；公开下载覆盖 1—10 年。本页不以 10Y 冒充材料中的 30Y 期限溢价。",
+    }, points, liquidity_old.get("acm_10y", {}), start, end, error or "ACM 10Y 无有效观测")
 
     repo_series = {}
     repo_old = previous.get("liquidity_pqg", {}).get("repo_series", {})

@@ -1,176 +1,134 @@
 'use strict';
 
-const $ = (id) => document.getElementById(id);
-const format = (value, digits = 2) => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value) : '—';
-const MODULES = [
-  { key: 'q', title: 'Q · 资金数量', max: 50, color: '#315f8a', subtitle: 'ON RRP、准备金与 Fed 资产负债表', metrics: [['on_rrp', 'ON RRP', 'T', 3], ['reserves', '准备金', 'T', 3], ['reserve_change', '准备金周变动', 'T', 3]] },
-  { key: 'p', title: 'P · 资金价格', max: 35, color: '#9d2933', subtitle: '曲线、远期利率与实际利率', metrics: [['curve_2s10s', '2Y–10Y', 'bp', 0], ['ois_1y1y', '1Y1Y 代理', '%', 2], ['tips_10y', '10Y TIPS', '%', 2]] },
-  { key: 'g', title: 'g · 传导结构', max: 15, color: '#2b7a78', subtitle: '隔夜资金、Repo 与 T-bill 供给', metrics: [['sofr_iorb', 'SOFR–IORB', 'bp', 1], ['repo', 'Repo 结构', '', 0], ['tbill', 'T-bill 虹吸', '', 0]] },
+const $ = id => document.getElementById(id);
+const nf = (value, digits = 2) => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value) : '—';
+const COLORS = { q: '#315f8a', g: '#24756f', p: '#9d2933', gold: '#a97513', gray: '#776f67', ink: '#25211d' };
+const RANGE_DAYS = { '1M': 31, '3M': 93, '6M': 186, '1Y': 366, ALL: Infinity };
+let liquidity; let currentRange = '6M'; const chartViews = [];
+
+function el(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
+function validSeries(item) { return Array.isArray(item?.data) ? item.data.filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.time) && Number.isFinite(p.value)) : []; }
+function series(key) { return validSeries(liquidity.series[key]); }
+function latest(points) { return points.length ? points.at(-1) : null; }
+function sameDay(left, right, operation) { const map = new Map(right.map(p => [p.time, p.value])); return left.filter(p => map.has(p.time)).map(p => ({ time: p.time, value: operation(p.value, map.get(p.time)) })); }
+function changeByRows(points, rows, multiplier = 1) { return points.slice(rows).map((p, i) => ({ time: p.time, value: (p.value - points[i].value) * multiplier })); }
+function sumCommon(items) { if (!items.length || items.some(a => !a.length)) return []; const maps = items.slice(1).map(a => new Map(a.map(p => [p.time, p.value]))); return items[0].filter(p => maps.every(m => m.has(p.time))).map(p => ({ time: p.time, value: p.value + maps.reduce((sum, m) => sum + m.get(p.time), 0) })); }
+function freshness(item) { return !item || item.status === 'unavailable' ? '数据不足' : item.stale ? '数据延迟' : item.status === 'cached' ? '使用缓存' : '已更新'; }
+function consecutive(points, predicate) { let count = 0; for (let i = points.length - 1; i >= 0 && predicate(points[i].value); i--) count += 1; return count; }
+
+function prepareDerived() {
+  const qTotal = sameDay(series('reserves'), series('on_rrp'), (a, b) => a + b);
+  const q4w = changeByRows(qTotal, 4);
+  const qAccel = changeByRows(q4w, 1);
+  const tgaChange = changeByRows(series('tga'), 1);
+  const spread = sameDay(series('sofr'), series('iorb'), (a, b) => (a - b) * 100);
+  const tips20 = changeByRows(series('tips_10y'), 20);
+  const curve2s10s = sameDay(series('dgs10'), series('dgs2'), (a, b) => (a - b) * 100);
+  const curve5s30s = sameDay(series('dgs30'), series('dgs5'), (a, b) => (a - b) * 100);
+  const assets = series('fed_assets');
+  const qtActual = assets.slice(4).map((p, i) => ({ time: p.time, value: Math.max(0, assets[i].value - p.value) }));
+  const repo = liquidity.repo_series || {};
+  const repoTotal = sumCommon(['repo_dvp_total', 'repo_gcf_total', 'repo_tri_total'].map(k => validSeries(repo[k])));
+  return { qTotal, q4w, qAccel, tgaChange, spread, tips20, curve2s10s, curve5s30s, qtActual, repoTotal };
+}
+
+function inferState(d) {
+  const q = latest(d.q4w);
+  const qState = !q ? 'unknown' : q.value > .02 ? 'loose' : q.value < -.02 ? 'tight' : 'flat';
+  const spreadNow = latest(d.spread); const spreadDays = consecutive(d.spread, value => value > 0);
+  const srfNow = latest(series('srf'));
+  const repoWindow = d.repoTotal.slice(-21); const repoBase = repoWindow.length > 1 ? repoWindow.slice(0, -1).reduce((sum, p) => sum + p.value, 0) / (repoWindow.length - 1) : null;
+  const repoSignal = Number.isFinite(repoBase) && d.repoTotal.at(-1).value > repoBase * 1.1;
+  const gState = !spreadNow ? 'unknown' : spreadDays >= 3 && ((srfNow?.value || 0) > 0 || repoSignal) ? 'tight' : spreadNow.value <= 0 && !(srfNow?.value > 0) ? 'clear' : 'watch';
+  const ois = series('ois_1y1y'); const tips = latest(d.tips20);
+  let pState = 'unknown';
+  if (ois.length > 20 && tips) { const ois20 = ois.at(-1).value - ois.at(-21).value; pState = ois20 > .05 && tips.value > .05 ? 'tight' : ois20 < -.05 && tips.value < -.05 ? 'loose' : 'split'; }
+  return { q: qState, g: gState, p: pState, qPoint: q, spread: spreadNow, spreadDays, srf: srfNow, repoSignal, tips };
+}
+
+function statusLabel(state) { return ({ loose: '已观察到扩张', tight: '已观察到收紧', flat: '尚未观察到方向', clear: '尚未观察到管道压力', watch: '证据待确认', split: '短长端分歧', unknown: '数据不足' })[state] || '待确认'; }
+function statusClass(state) { return ['loose', 'clear'].includes(state) ? 'positive' : state === 'tight' ? 'negative' : state === 'unknown' ? 'pending' : 'watch'; }
+
+function renderEvidence(d, state) {
+  const specs = [
+    { key: 'p', icon: '♨', title: 'P · 钱的价格', note: state.p === 'unknown' ? '短端预期路径缺失，长端不能替代整条曲线。' : `10Y 实际利率 20 日变化 ${nf(state.tips?.value)} pct。`, next: '下一步：OIS 路径与 10Y 实际利率同向确认。' },
+    { key: 'q', icon: '◆', title: 'Q · 钱的数量', note: state.qPoint ? `准备金＋ON RRP 四周净变化 ${nf(state.qPoint.value, 3)} T。` : '共同日期不足，暂不计算合计变化。', next: '下一步：看二阶变化和 ON RRP 缓冲。' },
+    { key: 'g', icon: '⌁', title: 'g · 资金管道', note: state.spread ? `SOFR−IORB ${nf(state.spread.value, 1)} bp；连续正值 ${state.spreadDays} 个观测。` : '同日 SOFR 与 IORB 数据不足。', next: '下一步：必须由工具响应或 Repo 量价扩散确认。' },
+  ];
+  const root = $('evidence-summary'); root.replaceChildren();
+  specs.forEach(spec => { const card = el('article', `evidence-card ${statusClass(state[spec.key])}`); card.append(el('span', 'factor-icon', spec.icon), el('h3', '', spec.title), el('strong', 'evidence-status', statusLabel(state[spec.key])), el('p', '', spec.note), el('small', '', spec.next)); root.append(card); });
+}
+
+const PANELS = [
+  { section: 'q', icon: '◆', title: 'Q · 钱的数量', intro: '先看水位，再看边际；Q 的变化二阶比静态水平更重要。', panels: [
+    { id: 'q-level', title: '准备金、ON RRP 与有效流动性代理', unit: '万亿美元', lines: d => [{ name: '准备金', data: series('reserves'), color: '#315f8a' }, { name: 'ON RRP', data: series('on_rrp'), color: '#85a9c7' }, { name: '合计', data: d.qTotal, color: '#19252e', width: 3 }], what: '准备金是银行体系水位，ON RRP 是非银蓄水池；两者合计是本页的有效市场流动性代理。', how: '合计持续下降表示水量收缩；ON RRP 接近耗尽后，同样的抽水更直接消耗准备金。', mistake: '合计不是 M2，也不是社融；TGA 已通过负债端影响准备金，不能从合计里再扣一次。' },
+    { id: 'q-momentum', title: '四周净变化与变化的变化', unit: '万亿美元', lines: d => [{ name: '四周净变化', data: d.q4w, color: '#315f8a', width: 3 }, { name: '二阶变化', data: d.qAccel, color: '#a97513' }], what: '四周净变化看抽水或灌水；二阶变化看抽水是否正在加速。', how: '净变化为负且二阶继续为负，收缩在加速；二阶转正只代表压力缓和。', mistake: '水平仍高但下降速度放缓，不等于已经重新宽松。' },
+    { id: 'q-tga', title: 'TGA 财政吞吐', unit: '万亿美元', lines: d => [{ name: 'TGA 余额', data: series('tga'), color: '#315f8a', width: 3 }, { name: '周变化', data: d.tgaChange, color: '#a97513', scale: 'left' }], what: 'TGA 是美国财政部在联储的账户。本页使用 H.4.1 周三余额。', how: 'TGA 上升通常从市场吸走资金，下降通常向市场释放资金；应和发债结构一起看。', mistake: 'TGA 单周变化有强烈日历性，不能单独定义趋势。' },
+    { id: 'q-buffer', title: 'ON RRP 缓冲与实际缩表代理', unit: '万亿美元', lines: d => [{ name: 'ON RRP', data: series('on_rrp'), color: '#315f8a', width: 3 }, { name: 'Fed 总资产四周实际下降', data: d.qtActual, color: '#9d2933' }], what: '用 Fed 总资产四周实际下降观察真实抽水节奏，并与 ON RRP 缓冲对照。', how: '当 ON RRP 低于近期实际抽水量，新增缩表更可能直接落在准备金。', mistake: '实际资产下降不是计划 QT 上限；QT 停止或资产因其他科目变化时，比例规则不适用。' },
+  ]},
+  { section: 'g', icon: '⌁', title: 'g · 资金管道', intro: '水量够不代表不缺氧。g 是阈值变量，要看价格、工具和非银渠道是否扩散。', panels: [
+    { id: 'g-spread', title: 'SOFR − IORB', unit: '基点', zero: true, lines: d => [{ name: 'SOFR−IORB', data: d.spread, color: '#24756f', width: 3 }], what: '担保隔夜融资利率与银行准备金利率之差，反映回购融资相对准备金价格的压力。', how: '持续高于零值得关注，还要结合 Fed 回购投放和 Repo 量价确认。', mistake: '季末、缴税或发债缴款附近的一次跳升，不足以认定结构性恶化。' },
+    { id: 'g-srf', title: 'Fed 回购投放（SRF 工具响应代理）', unit: '万亿美元', lines: () => [{ name: '回购投放余额', data: series('srf'), color: '#24756f', width: 3 }], what: 'FRED 的临时回购余额用于观察 Fed 是否向市场提供担保融资，作为 SRF 工具响应代理。', how: '从零星转为连续动用，才构成管道压力升级的证据。', mistake: '工具没有动用不能单独证明没有压力；本序列也不把 SRF 设定利率误当使用量。' },
+    { id: 'g-repo', title: 'Repo 成交量与资金价格', unit: '量：万亿美元 / 价：%', lines: d => [{ name: 'Repo 总成交量', data: d.repoTotal, color: '#24756f', width: 3 }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', scale: 'left' }], what: 'OFR 三类 Repo 成交量与 SOFR 上下对齐，观察资金量和融资价格是否共同变化。', how: '价格上行同时伴随结构或成交异常，比单看价格更接近扩散证据。', mistake: '成交量上升可能只是正常融资需求，不等于缺钱。' },
+  ]},
+  { section: 'p', icon: '♨', title: 'P · 钱的价格', intro: '短端看水平与预期路径，长端看实际利率和期限溢价的变化。', panels: [
+    { id: 'p-short', title: '短端利率与预期路径', unit: '%', lines: () => [{ name: 'IORB', data: series('iorb'), color: '#776f67' }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', width: 3 }, { name: '1Y1Y SR3 代理', data: series('ois_1y1y'), color: '#315f8a' }], what: 'IORB 和 SOFR 是已实现短端；1Y1Y SR3 代理用于读取未来第 13—24 个月的预期中枢。', how: '预期路径与长端实际利率同向，P 的方向才更强。缺失时图表明确留空。', mistake: '降息动作或一天的期货跳动，不等于 P 已经转松。' },
+    { id: 'p-real', title: '10Y 实际利率与 20 日变化', unit: '% / pct', lines: d => [{ name: '10Y 实际利率', data: series('tips_10y'), color: '#9d2933', width: 3 }, { name: '20 日变化', data: d.tips20, color: '#a97513', scale: 'left' }], what: '10Y TIPS 是长端实际贴现率；20 个交易日变化显示边际方向。', how: '水平决定约束底线，变化率决定边际压力。', mistake: '名义 10Y、CPI 或短端降息次数都不能替代实际利率。' },
+    { id: 'p-curve', title: '收益率曲线、斜率与 10Y ACM 参考', unit: '% / bp', lines: d => [{ name: '2Y', data: series('dgs2'), color: '#9d2933' }, { name: '5Y', data: series('dgs5'), color: '#c26b70' }, { name: '10Y', data: series('dgs10'), color: '#315f8a', width: 3 }, { name: '30Y', data: series('dgs30'), color: '#19252e' }, { name: '2s10s', data: d.curve2s10s, color: '#24756f', scale: 'left' }, { name: '5s30s', data: d.curve5s30s, color: '#72a9a4', scale: 'left' }, { name: '10Y ACM 期限溢价', data: series('acm_10y'), color: '#a97513' }], what: '四个期限描述整条曲线；斜率用基点表示。10Y ACM 是模型估算的期限溢价参考。', how: '熊陡且期限溢价同步上升，才提示长端可能从增长定价切向财政供给定价。', mistake: '10Y ACM 不能冒充 30Y 期限溢价；财政主导仍需人工结合供给与通胀确认。' },
+  ]},
 ];
-let snapshot;
-const charts = [];
 
-function createElement(tag, className, text) {
-  const node = document.createElement(tag);
-  if (className) node.className = className;
-  if (text !== undefined) node.textContent = text;
-  return node;
+function createChart(container, panel, d) {
+  const chart = LightweightCharts.createChart(container, { autoSize: true, layout: { background: { type: 'solid', color: '#fffefb' }, textColor: '#6f6a63', fontSize: 11, attributionLogo: true }, grid: { vertLines: { color: '#eee9df' }, horzLines: { color: '#e7e0d5', style: 2 } }, rightPriceScale: { borderVisible: false }, leftPriceScale: { visible: true, borderVisible: false }, timeScale: { borderVisible: false, rightOffset: 1 }, crosshair: { vertLine: { color: '#aaa096' }, horzLine: { color: '#aaa096' } }, handleScroll: { vertTouchDrag: false }, localization: { locale: 'zh-CN' } });
+  const lines = panel.lines(d); const created = [];
+  lines.forEach((spec, index) => { const line = chart.addSeries(LightweightCharts.LineSeries, { color: spec.color, lineWidth: spec.width || 2, priceScaleId: spec.scale || 'right', priceLineVisible: false, lastValueVisible: true, crosshairMarkerRadius: 3, title: spec.name }); line.setData(spec.data); if (panel.zero && index === 0) line.createPriceLine({ price: 0, color: '#9d2933', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '零线' }); created.push({ line, spec }); });
+  return { chart, created, panel, container };
 }
 
-function scoreClass(status) {
-  if (!status || status === '待核验') return 'pending';
-  if (status.includes('宽松')) return 'loose';
-  if (status.includes('中性')) return 'neutral';
-  if (status.includes('脆弱')) return 'fragile';
-  return 'tight';
+function lastReading(panel, d) { const available = panel.lines(d).filter(line => line.data.length).map(line => `${line.name} ${nf(line.data.at(-1).value, line.name.includes('bp') || panel.unit === '基点' ? 1 : 3)}（${line.data.at(-1).time}）`); return available.length ? available.slice(0, 3).join(' · ') : '数据不足，等待下一次有效更新。'; }
+function renderDashboard(d) {
+  const root = $('dashboard-sections'); root.replaceChildren(); chartViews.length = 0;
+  PANELS.forEach(group => { const section = el('section', `factor-section factor-${group.section}`); const head = el('div', 'factor-heading'); head.append(el('span', 'factor-icon large', group.icon), el('div')); head.lastChild.append(el('p', 'eyebrow', `LAYER / ${group.section.toUpperCase()}`), el('h2', '', group.title), el('p', '', group.intro)); section.append(head);
+    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const item = el('span', '', line.name); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what), explanation('怎么看', panel.how), explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
+  applyRange();
+}
+function explanation(label, value) { const p = el('p'); p.append(el('strong', '', `${label}：`), document.createTextNode(value)); return p; }
+function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
+
+function applyRange() { const days = RANGE_DAYS[currentRange]; chartViews.forEach(view => { const all = view.created.flatMap(x => x.spec.data); if (!all.length) return; const end = new Date(`${all.map(p => p.time).sort().at(-1)}T00:00:00Z`); if (Number.isFinite(days)) { const start = new Date(end); start.setUTCDate(start.getUTCDate() - days); view.chart.timeScale().setVisibleRange({ from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) }); } else view.chart.timeScale().fitContent(); }); }
+
+const COMBOS = [
+  ['A', '全面宽松', { p: 'loose', q: 'loose', g: 'clear' }, '估值扩张主导；成长与久期受益，但低波＋高杠杆仍要警惕。'],
+  ['B', '保守主义复位', { p: 'loose', q: 'tight', g: 'tight' }, '降息只是缓冲；缩短久期，向确定性现金流与链主收缩。'],
+  ['C', 'PQ 双紧＋g 恶化', { p: 'tight', q: 'tight', g: 'tight' }, '美元与确定性资产虹吸；外圈、高杠杆和纯估值资产承压。'],
+  ['D', '央行紧、财政灌', { p: 'loose', q: 'tight', g: 'clear' }, '行政对冲主导节奏；高敏感资产只适合条件式观察。'],
+  ['E', '财政主导的通胀型', { p: 'tight', q: 'flat', g: 'tight' }, '长端熊陡与期限溢价主导；久期承压，黄金与硬资产相对受益。'],
+  ['F', '隐性紧缩', { p: 'split', q: 'flat', g: 'tight' }, '表面平静、底层缺氧；低波不能用作安全证明。'],
+  ['H', 'K 型流动性', { p: 'split', q: 'flat', g: 'watch' }, '总量中性但结构极端分化；按标的现金流与融资渠道选，不按指数选。'],
+];
+function renderCombinations(state) { const root = $('combination-grid'); root.replaceChildren(); COMBOS.forEach(([code, name, target, impact]) => { const matches = Object.keys(target).filter(k => state[k] === target[k]); const conflicts = Object.keys(target).filter(k => state[k] !== 'unknown' && state[k] !== target[k]); const pending = Object.keys(target).filter(k => state[k] === 'unknown'); const card = el('article', `combo-card ${matches.length >= 2 && !conflicts.length ? 'candidate' : ''}`); card.append(el('span', 'combo-code', code), el('h3', '', name), el('p', 'combo-state', `P ${labelShort(target.p)} / Q ${labelShort(target.q)} / g ${labelShort(target.g)}`), comboLine('支持', matches), comboLine('冲突', conflicts), comboLine('待补', pending), el('p', 'combo-impact', impact)); root.append(card); });
+  const impact = $('asset-impact'); impact.replaceChildren(); impact.append(el('h3', '', '资产传导怎么读'), el('p', '', '若 Q 收缩并由 g 的工具响应确认，先看美元融资、信用和高波动资产；若 P 的长端由期限溢价抬升主导，实际利率和久期具有否决权。当前任一关键维度为“数据不足”时，只展示条件，不给仓位或买卖结论。'));
+}
+function labelShort(value) { return ({ loose: '松', tight: '紧', clear: '通', flat: '平', split: '分歧', watch: '分化' })[value] || '待核验'; }
+function comboLine(label, keys) { const p = el('p', `combo-evidence ${label === '支持' ? 'support' : label === '冲突' ? 'conflict' : 'pending'}`); p.append(el('b', '', `${label}：`), document.createTextNode(keys.length ? keys.map(k => k.toUpperCase()).join('、') : '无')); return p; }
+
+function renderChecklist(d, state) {
+  const rows = [
+    ['01', 'ON RRP 缓冲', latest(series('on_rrp')), '余额需与实际月度抽水量比较；QT 为零时比例不适用。'],
+    ['02', '准备金＋工具响应', state.srf, '回购投放从零星转持续，才说明压力进入工具层。'],
+    ['03', 'SOFR−IORB', state.spread, `连续正值 ${state.spreadDays} 个观测；单日跳升不能确认。`],
+    ['04', '短端预期路径', latest(series('ois_1y1y')), '无可验证 SR3/OIS 数据时保持待确认。'],
+    ['05', '10Y 实际利率', latest(series('tips_10y')), state.tips ? `20 日变化 ${nf(state.tips.value)} pct。` : '20 日变化不足。'],
+    ['06', '曲线＋期限溢价', latest(series('acm_10y')), '10Y ACM 仅参考；财政主导需人工确认。'],
+    ['07', 'TGA＋发债结构', latest(series('tga')), 'TGA 有数据；Bill/Coupon 结构仍需结合财政看板人工判断。'],
+    ['08', '波动与信用', null, 'MOVE、原油 IV、VIX 期限结构与高收益利差不在本页，保留人工核验。'],
+  ]; const root = $('checklist'); root.replaceChildren(); rows.forEach(([num, name, point, note]) => { const item = el('article', 'check-item'); const stateText = point ? '已观察到' : '数据不足'; item.append(el('span', 'check-number', num), el('div', 'check-main'), el('span', `check-state ${point ? 'observed' : 'pending'}`, stateText)); item.querySelector('.check-main').append(el('h3', '', name), el('p', '', point ? `${nf(point.value, 3)} · ${point.time}。${note}` : note)); root.append(item); });
 }
 
-function metricValue(key, value, unit, digits) {
-  if (!Number.isFinite(value)) return '待核验';
-  if (key === 'repo') return { 1: '隔夜偏多', 2: '定期增多', 3: '结构分化' }[value] || '待核验';
-  if (key === 'tbill') return { 1: '轻虹吸', 2: '强虹吸' }[value] || '待核验';
-  return `${format(value, digits)}${unit ? ` ${unit}` : ''}`;
-}
+function renderSources() { const root = $('pqg-sources'); root.replaceChildren(); const all = { ...liquidity.series, ...liquidity.repo_series, tbill_events: liquidity.tbill_events }; Object.values(all).forEach(source => { const row = el('div', 'source-item'); const link = el('a', '', `${source.name} ↗`); link.href = source.source_url; link.target = '_blank'; link.rel = 'noopener noreferrer'; row.append(link, el('div', '', `${source.source} · ${source.unit} · ${source.frequency}${source.proxy ? ' · 代理指标' : ''}`), el('div', '', `最新 ${source.last_date || '无数据'} · ${freshness(source)}`), el('div', '', source.note || ''), el('div', '', source.message || '')); root.append(row); }); }
 
-function createModule(module) {
-  const article = createElement('article', 'pqg-module');
-  const heading = createElement('div', 'pqg-module-heading');
-  const titleGroup = createElement('div');
-  titleGroup.append(createElement('h2', '', module.title), createElement('p', '', module.subtitle));
-  const score = createElement('div', 'module-score', '—');
-  score.id = `score-${module.key}`;
-  heading.append(titleGroup, score);
-  const cards = createElement('div', 'metric-grid');
-  for (const [key, label, unit, digits] of module.metrics) {
-    const card = createElement('div', 'metric-card');
-    const value = createElement('strong', '', '—');
-    value.id = `metric-${key}`;
-    const tag = createElement('span', 'metric-tag', '待核验');
-    tag.id = `tag-${key}`;
-    card.append(createElement('span', 'metric-label', label), value, createElement('small', '', unit), tag);
-    cards.append(card);
-  }
-  const plotWrap = createElement('div', 'pqg-plot-wrap');
-  const plot = createElement('div', 'pqg-plot');
-  plot.id = `plot-${module.key}`;
-  const empty = createElement('div', 'module-empty', '正在加载周度得分…');
-  plotWrap.append(plot, empty);
-  const note = createElement('div', 'module-note');
-  note.id = `note-${module.key}`;
-  article.append(heading, cards, plotWrap, note);
-  $('pqg-modules').append(article);
-  const chart = LightweightCharts.createChart(plot, {
-    autoSize: true,
-    layout: { background: { type: 'solid', color: '#fffefb' }, textColor: '#6f6a63', fontSize: 10, attributionLogo: true },
-    grid: { vertLines: { color: '#eee9df' }, horzLines: { color: '#e7e0d5', style: 2 } },
-    rightPriceScale: { borderVisible: false, scaleMargins: { top: .16, bottom: .12 } },
-    leftPriceScale: { visible: false }, timeScale: { borderVisible: false, timeVisible: false, rightOffset: 1 },
-    crosshair: { vertLine: { color: '#aaa096' }, horzLine: { color: '#aaa096' } },
-    handleScroll: { vertTouchDrag: false }, localization: { locale: 'zh-CN' },
-  });
-  const line = chart.addSeries(LightweightCharts.LineSeries, { color: module.color, lineWidth: 3, priceLineVisible: false, lastValueVisible: true, crosshairMarkerRadius: 4, priceFormat: { type: 'price', precision: 0, minMove: 1 } });
-  charts.push({ module, chart, line, empty });
-}
+function validate(data) { const value = data?.liquidity_pqg; if (!Number.isInteger(data?.schema_version) || data.schema_version < 2 || !value?.series) throw new Error('流动性快照格式不正确'); return value; }
+async function load() { try { const response = await fetch('./data.json', { cache: 'no-store', signal: AbortSignal.timeout(20000) }); if (!response.ok) throw new Error(`HTTP ${response.status}`); const snapshot = await response.json(); liquidity = validate(snapshot); const d = prepareDerived(); const state = inferState(d); renderEvidence(d, state); renderDashboard(d); renderCombinations(state); renderChecklist(d, state); renderSources(); const generated = new Date(snapshot.generated_at).toLocaleString('zh-CN', { timeZone: 'Europe/Berlin', hour12: false }); $('pqg-update-status').textContent = `快照生成 ${generated} 柏林时间 · 最新观测 ${liquidity.as_of || '待核验'}`; $('pqg-error').hidden = true; } catch (error) { $('pqg-error').hidden = false; $('pqg-error').textContent = `读取流动性快照失败：${error.message}`; $('pqg-update-status').textContent = '数据读取失败'; } }
 
-function renderSummary(latest) {
-  const total = latest.scores.total;
-  $('pqg-summary').replaceChildren();
-  const totalCard = createElement('article', `pqg-total ${scoreClass(latest.scores.status)}`);
-  totalCard.append(createElement('span', 'summary-label', '美元流动性状态'), createElement('strong', '', Number.isFinite(total) ? `${format(total, 0)} / 100` : '待核验'), createElement('span', 'status-pill', latest.scores.status), createElement('small', '', `截至 ${latest.as_of}`));
-  $('pqg-summary').append(totalCard);
-  for (const module of MODULES) {
-    const value = latest.scores[module.key];
-    const card = createElement('article', 'pqg-score-card');
-    card.append(createElement('span', 'summary-label', module.title), createElement('strong', '', Number.isFinite(value) ? `${format(value, 0)} / ${module.max}` : '待核验'), createElement('small', '', Number.isFinite(value) ? '最近周度得分' : '等待所需输入'));
-    $('pqg-summary').append(card);
-  }
-}
-
-function renderModules(weeks) {
-  const latest = weeks.at(-1);
-  for (const view of charts) {
-    const { module, chart, line, empty } = view;
-    const points = weeks.filter(row => Number.isFinite(row.scores[module.key])).map(row => ({ time: row.as_of, value: row.scores[module.key] }));
-    line.setData(points);
-    empty.hidden = points.length > 0;
-    empty.textContent = module.key === 'p' ? '缺少可验证的 CME SR3 远期代理 · P 分待核验' : '缺少完整输入 · 该模块得分待核验';
-    chart.timeScale().fitContent();
-    const current = latest.scores[module.key];
-    $(`score-${module.key}`).textContent = Number.isFinite(current) ? `${format(current, 0)} / ${module.max}` : '待核验';
-    $(`score-${module.key}`).style.color = module.color;
-    for (const [key, , unit, digits] of module.metrics) {
-      $(`metric-${key}`).textContent = metricValue(key, latest.metrics[key], unit, digits);
-      $(`tag-${key}`).textContent = latest.labels[key] || '待核验';
-    }
-    const breakdown = latest.scores.breakdown[module.key];
-    const note = breakdown ? Object.entries(breakdown).map(([key, value]) => `${key} ${value >= 0 ? '+' : ''}${value}`).join(' · ') : '输入缺失或延迟，分数暂不计算';
-    $(`note-${module.key}`).textContent = note;
-  }
-}
-
-function renderTable(weeks) {
-  const body = $('weekly-table');
-  body.replaceChildren();
-  for (const row of weeks) {
-    const m = row.metrics; const s = row.scores;
-    const values = [row.week, metricValue('on_rrp', m.on_rrp, 'T', 3), metricValue('reserves', m.reserves, 'T', 3), metricValue('curve_2s10s', m.curve_2s10s, 'bp', 0), metricValue('ois_1y1y', m.ois_1y1y, '%', 2), metricValue('tips_10y', m.tips_10y, '%', 2), metricValue('sofr_iorb', m.sofr_iorb, 'bp', 1), metricValue('repo', m.repo), metricValue('tbill', m.tbill), s.q, s.p, s.g, s.total, s.status];
-    const tr = createElement('tr');
-    values.forEach((value, index) => {
-      const cell = createElement('td', index === values.length - 1 ? `status-cell ${scoreClass(s.status)}` : '', Number.isFinite(value) ? format(value, 0) : String(value ?? '待核验'));
-      if (index > 0 && index < 9 && row.labels[Object.keys({ on_rrp: 1, reserves: 1, curve_2s10s: 1, ois_1y1y: 1, tips_10y: 1, sofr_iorb: 1, repo: 1, tbill: 1 })[index - 1]]) cell.title = row.labels[Object.keys({ on_rrp: 1, reserves: 1, curve_2s10s: 1, ois_1y1y: 1, tips_10y: 1, sofr_iorb: 1, repo: 1, tbill: 1 })[index - 1]];
-      tr.append(cell);
-    });
-    body.append(tr);
-  }
-}
-
-function renderSources(liquidity) {
-  const list = $('pqg-sources');
-  list.replaceChildren();
-  const sources = { ...liquidity.series, ...liquidity.repo_series, tbill_events: liquidity.tbill_events };
-  for (const source of Object.values(sources)) {
-    const row = createElement('div', 'source-item');
-    const link = createElement('a', '', `${source.name} ↗`);
-    link.href = source.source_url; link.target = '_blank'; link.rel = 'noopener noreferrer';
-    row.append(link, createElement('div', '', `${source.source} · ${source.unit} · ${source.frequency}`), createElement('div', '', `最新 ${source.last_date || '无数据'} · ${{ ok: '获取成功', cached: '使用缓存', unavailable: '暂不可用' }[source.status]}${source.stale ? ' · 数据延迟' : ''}`), createElement('div', '', source.note || ''), createElement('div', '', source.message || ''));
-    list.append(row);
-  }
-}
-
-function validate(data) {
-  const liquidity = data?.liquidity_pqg;
-  if (!Number.isInteger(data?.schema_version) || data.schema_version < 2 || !liquidity || !Array.isArray(liquidity.weeks)) throw new Error('流动性快照格式不正确');
-  for (const row of liquidity.weeks) {
-    if (!/^\d{4}-\d{2}$/.test(row.week) || !/^\d{4}-\d{2}-\d{2}$/.test(row.as_of) || !row.metrics || !row.scores) throw new Error('周度记录不完整');
-  }
-  return liquidity;
-}
-
-async function load() {
-  try {
-    const response = await fetch('./data.json', { cache: 'no-store', signal: AbortSignal.timeout(20000) });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    snapshot = await response.json();
-    const liquidity = validate(snapshot);
-    if (!liquidity.weeks.length) throw new Error('暂无可用周度数据');
-    const latest = liquidity.weeks.at(-1);
-    renderSummary(latest); renderModules(liquidity.weeks); renderTable(liquidity.weeks); renderSources(liquidity);
-    const generated = new Date(snapshot.generated_at).toLocaleString('zh-CN', { timeZone: 'Europe/Berlin', hour12: false });
-    $('pqg-update-status').textContent = `快照生成 ${generated} 柏林时间 · 最新周度 ${latest.week}`;
-    $('pqg-error').hidden = true;
-  } catch (error) {
-    $('pqg-error').hidden = false;
-    $('pqg-error').textContent = `读取流动性快照失败：${error.message}`;
-    $('pqg-update-status').textContent = '数据读取失败';
-  }
-}
-
-try {
-  if (!window.LightweightCharts) throw new Error('图表组件未加载');
-  MODULES.forEach(createModule);
-  load();
-  setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000);
-} catch (error) {
-  $('pqg-error').hidden = false;
-  $('pqg-error').textContent = error.message;
-}
+document.querySelectorAll('#range-control button').forEach(button => button.addEventListener('click', () => { currentRange = button.dataset.range; document.querySelectorAll('#range-control button').forEach(item => item.setAttribute('aria-pressed', String(item === button))); applyRange(); }));
+try { if (!window.LightweightCharts) throw new Error('图表组件未加载'); load(); setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000); } catch (error) { $('pqg-error').hidden = false; $('pqg-error').textContent = error.message; }

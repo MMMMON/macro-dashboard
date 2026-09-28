@@ -164,6 +164,20 @@ class LiquidityPQGTests(unittest.TestCase):
         self.assertEqual(result[0]["time"], "2026-01-01")
         self.assertAlmostEqual(result[0]["value"], 4.502762, places=6)
 
+    def test_acm_term_premium_parses_official_monthly_download(self):
+        class Response:
+            status_code = 200
+            text = "RunDates,TERMYld,ACMFITYld,GSWYld\n31-Jan-2026,0.42,4.1,4.2\n"
+
+        class Session:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def get(self, *args, **kwargs): return Response()
+
+        with patch.object(feed, 'http_session', return_value=Session()):
+            result = feed.fetch_acm_10y_term_premium(date(2026, 1, 1), date(2026, 2, 1))
+        self.assertEqual(result, [{"time": "2026-01-31", "value": 0.42}])
+
 
 if __name__ == '__main__':
     unittest.main()

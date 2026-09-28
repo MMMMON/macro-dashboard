@@ -60,10 +60,16 @@ with sync_playwright() as p:
     page.set_viewport_size({"width": 1440, "height": 1100})
     page.goto((live_url.rstrip('/') + '/liquidity.html') if live_url else 'http://macro-dashboard.test/liquidity.html', wait_until='networkidle')
     expect(page.locator('#pqg-update-status')).to_contain_text('快照生成')
-    assert page.locator('.pqg-module').count() == 3
-    assert page.locator('.pqg-plot canvas').count() >= 3
-    assert page.locator('#weekly-table tr').count() == 8
-    assert page.locator('#weekly-table').inner_text().count('待核验') >= 1
+    assert page.locator('.factor-section').count() == 3
+    assert page.locator('.explain-panel').count() == 10
+    assert page.locator('.explain-plot canvas').count() >= 10
+    assert page.locator('.chart-explainer').count() == 10
+    assert page.locator('.combo-card').count() == 7
+    assert page.locator('.check-item').count() == 8
+    assert page.locator('.concept-gate').inner_text().find('不是一回事') >= 0
+    assert '数据不足' in page.locator('.evidence-card').first.inner_text()
+    for label in ['1M', '3M', '6M', '1Y', 'ALL']:
+        page.locator(f'#range-control button[data-range="{label}"]').click()
     page.screenshot(path=str(artifacts / 'liquidity-desktop.png'), full_page=True)
     page.set_viewport_size({"width": 390, "height": 844})
     page.wait_for_timeout(400)
