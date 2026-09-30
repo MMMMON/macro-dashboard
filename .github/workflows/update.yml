@@ -43,7 +43,7 @@ jobs:
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           # Optional reviewed public SR3-settlement export. When absent, the
-          # page deliberately marks the P block and total score 待核验.
+          # updater uses delayed Yahoo CME quotes as a clearly labelled proxy.
           CME_SR3_FORWARD_URL: ${{ secrets.CME_SR3_FORWARD_URL }}
         run: python -u fetch_data.py
       - name: Commit changed snapshot and push default branch

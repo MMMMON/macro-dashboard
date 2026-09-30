@@ -401,13 +401,18 @@ def fetch_yahoo_sr3_forward(start: date, end: date):
     """
     month_codes = {3: "H", 6: "M", 9: "U", 12: "Z"}
     contracts = []
-    # Include enough quarterly legs to cover every observation's 1Y1Y window.
-    for year in range(start.year, end.year + 3):
+    # Yahoo exposes only the current daily bar for many individual SR3 symbols.
+    # Request the five or six legs around today's 1Y1Y window, then retain each
+    # derived observation in our own snapshot instead of probing expired symbols.
+    expected_day = end - timedelta(days=1)
+    target_start = (pd.Timestamp(expected_day) + pd.DateOffset(years=1)).date()
+    target_end = (pd.Timestamp(expected_day) + pd.DateOffset(years=2)).date()
+    for year in range(target_start.year - 1, target_end.year + 2):
         for month, code in month_codes.items():
             reference_start = third_wednesday(year, month)
             next_quarter = add_months(reference_start, 3)
             reference_end = third_wednesday(next_quarter.year, next_quarter.month)
-            if reference_end < start + timedelta(days=330) or reference_start > end + timedelta(days=740):
+            if reference_end <= target_start or reference_start >= target_end:
                 continue
             contracts.append((f"SR3{code}{year % 100:02d}.CME", reference_start, reference_end))
 
