@@ -27,9 +27,10 @@ function prepareDerived() {
   const curve5s30s = sameDay(series('dgs30'), series('dgs5'), (a, b) => (a - b) * 100);
   const assets = series('fed_assets');
   const qtActual = assets.slice(4).map((p, i) => ({ time: p.time, value: Math.max(0, assets[i].value - p.value) }));
+  const rrpBuffer = sameDay(series('on_rrp'), qtActual, (rrp, qt) => rrp - qt);
   const repo = liquidity.repo_series || {};
   const repoTotal = sumCommon(['repo_dvp_total', 'repo_gcf_total', 'repo_tri_total'].map(k => validSeries(repo[k])));
-  return { qTotal, q4w, qAccel, tgaChange, spread, tips20, curve2s10s, curve5s30s, qtActual, repoTotal };
+  return { qTotal, q4w, qAccel, tgaChange, spread, tips20, curve2s10s, curve5s30s, qtActual, rrpBuffer, repoTotal };
 }
 
 function inferState(d) {
@@ -64,7 +65,7 @@ const PANELS = [
     { id: 'q-level', title: '准备金、ON RRP 与有效流动性代理', unit: '万亿美元', lines: d => [{ name: '准备金', data: series('reserves'), color: '#315f8a' }, { name: 'ON RRP', data: series('on_rrp'), color: '#85a9c7' }, { name: '合计', data: d.qTotal, color: '#19252e', width: 3 }], what: '准备金是银行体系水位，ON RRP 是非银蓄水池；两者合计是本页的有效市场流动性代理。', how: '合计持续下降表示水量收缩；ON RRP 接近耗尽后，同样的抽水更直接消耗准备金。', mistake: '合计不是 M2，也不是社融；TGA 已通过负债端影响准备金，不能从合计里再扣一次。' },
     { id: 'q-momentum', title: '四周净变化与变化的变化', unit: '万亿美元', lines: d => [{ name: '四周净变化', data: d.q4w, color: '#315f8a', width: 3 }, { name: '二阶变化', data: d.qAccel, color: '#a97513' }], what: '四周净变化看抽水或灌水；二阶变化看抽水是否正在加速。', how: '净变化为负且二阶继续为负，收缩在加速；二阶转正只代表压力缓和。', mistake: '水平仍高但下降速度放缓，不等于已经重新宽松。' },
     { id: 'q-tga', title: 'TGA 财政吞吐', unit: '万亿美元', lines: d => [{ name: 'TGA 余额', data: series('tga'), color: '#315f8a', width: 3 }, { name: '周变化', data: d.tgaChange, color: '#a97513', scale: 'left' }], what: 'TGA 是美国财政部在联储的账户。本页使用 H.4.1 周三余额。', how: 'TGA 上升通常从市场吸走资金，下降通常向市场释放资金；应和发债结构一起看。', mistake: 'TGA 单周变化有强烈日历性，不能单独定义趋势。' },
-    { id: 'q-buffer', title: 'ON RRP 缓冲与实际缩表代理', unit: '万亿美元', lines: d => [{ name: 'ON RRP', data: series('on_rrp'), color: '#315f8a', width: 3 }, { name: 'Fed 总资产四周实际下降', data: d.qtActual, color: '#9d2933' }], what: '用 Fed 总资产四周实际下降观察真实抽水节奏，并与 ON RRP 缓冲对照。', how: '当 ON RRP 低于近期实际抽水量，新增缩表更可能直接落在准备金。', mistake: '实际资产下降不是计划 QT 上限；QT 停止或资产因其他科目变化时，比例规则不适用。' },
+    { id: 'q-buffer', title: 'ON RRP 缓冲与实际缩表代理', unit: '万亿美元', zero: true, lines: d => [{ name: 'ON RRP', data: series('on_rrp'), color: '#315f8a', width: 3 }, { name: 'Fed 总资产四周实际下降', data: d.qtActual, color: '#9d2933' }, { name: '海绵差值：ON RRP − 四周实际下降', data: d.rrpBuffer, color: '#24756f', width: 3 }], what: '用 Fed 总资产四周实际下降观察真实抽水节奏；再用 ON RRP 减去该抽水量，直接衡量海绵还剩多少。', how: '海绵差值为正，表示 ON RRP 仍覆盖近期四周实际抽水；等于或低于零，表示按这个代理口径缓冲已不足，新增缩表更可能直接落在准备金。', mistake: '这是实际缩表代理，不是计划 QT 上限；QT 停止或总资产受其他科目扰动时，差值不能机械解释。' },
   ]},
   { section: 'g', icon: '⌁', title: 'g · 资金管道', intro: '水量够不代表不缺氧。g 是阈值变量，要看价格、工具和非银渠道是否扩散。', panels: [
     { id: 'g-spread', title: 'SOFR − IORB', unit: '基点', zero: true, lines: d => [{ name: 'SOFR−IORB', data: d.spread, color: '#24756f', width: 3 }], what: '担保隔夜融资利率与银行准备金利率之差，反映回购融资相对准备金价格的压力。', how: '持续高于零值得关注，还要结合 Fed 回购投放和 Repo 量价确认。', mistake: '季末、缴税或发债缴款附近的一次跳升，不足以认定结构性恶化。' },
@@ -85,7 +86,7 @@ function createChart(container, panel, d) {
   return { chart, created, panel, container };
 }
 
-function lastReading(panel, d) { const available = panel.lines(d).filter(line => line.data.length).map(line => `${line.name} ${nf(line.data.at(-1).value, line.name.includes('bp') || panel.unit === '基点' ? 1 : 3)}（${line.data.at(-1).time}）`); return available.length ? available.slice(0, 3).join(' · ') : '数据不足，等待下一次有效更新。'; }
+function lastReading(panel, d) { const available = panel.lines(d).filter(line => line.data.length).map(line => `${line.name} ${nf(line.data.at(-1).value, line.name.includes('bp') || panel.unit === '基点' ? 1 : 3)}（${line.data.at(-1).time}）`); if (!available.length) return '数据不足，等待下一次有效更新。'; if (panel.id === 'q-buffer' && d.rrpBuffer.length) { const point = d.rrpBuffer.at(-1); return `${available.slice(0, 3).join(' · ')}。海绵判定：${point.value > 0 ? '正值，缓冲仍在' : '零或负值，缓冲不足'}。`; } return available.slice(0, 3).join(' · '); }
 function renderDashboard(d) {
   const root = $('dashboard-sections'); root.replaceChildren(); chartViews.length = 0;
   PANELS.forEach(group => { const section = el('section', `factor-section factor-${group.section}`); const head = el('div', 'factor-heading'); head.append(el('span', 'factor-icon large', group.icon), el('div')); head.lastChild.append(el('p', 'eyebrow', `LAYER / ${group.section.toUpperCase()}`), el('h2', '', group.title), el('p', '', group.intro)); section.append(head);
@@ -93,7 +94,7 @@ function renderDashboard(d) {
   applyRange();
 }
 function explanation(label, value) { const p = el('p'); p.append(el('strong', '', `${label}：`), document.createTextNode(value)); return p; }
-function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
+function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'q-buffer' ? '海绵差值 = 同一观测日 ON RRP − max（四周前 Fed 总资产 − 当前 Fed 总资产，0）。只使用共同日期。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
 
 function applyRange() { const days = RANGE_DAYS[currentRange]; chartViews.forEach(view => { const all = view.created.flatMap(x => x.spec.data); if (!all.length) return; const end = new Date(`${all.map(p => p.time).sort().at(-1)}T00:00:00Z`); if (Number.isFinite(days)) { const start = new Date(end); start.setUTCDate(start.getUTCDate() - days); view.chart.timeScale().setVisibleRange({ from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) }); } else view.chart.timeScale().fitContent(); }); }
 

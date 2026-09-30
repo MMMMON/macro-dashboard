@@ -68,6 +68,9 @@ with sync_playwright() as p:
     assert page.locator('.check-item').count() == 8
     assert page.locator('.concept-gate').inner_text().find('不是一回事') >= 0
     assert '数据不足' in page.locator('.evidence-card').first.inner_text()
+    buffer_panel = page.locator('.explain-panel').filter(has_text='ON RRP 缓冲与实际缩表代理')
+    assert '海绵判定' in buffer_panel.locator('.chart-explainer').inner_text()
+    assert '海绵差值：ON RRP − 四周实际下降' in buffer_panel.locator('.panel-legend').inner_text()
     for label in ['1M', '3M', '6M', '1Y', 'ALL']:
         page.locator(f'#range-control button[data-range="{label}"]').click()
     page.screenshot(path=str(artifacts / 'liquidity-desktop.png'), full_page=True)
