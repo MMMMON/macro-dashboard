@@ -45,6 +45,8 @@ jobs:
         env:
           CME_SR3_FORWARD_URL: ${{ secrets.CME_SR3_FORWARD_URL }}
           MACROMICRO_API_KEY: ${{ secrets.MACROMICRO_API_KEY }}
+          CME_TERM_SOFR_API_ID: ${{ secrets.CME_TERM_SOFR_API_ID }}
+          CME_TERM_SOFR_API_PASSWORD: ${{ secrets.CME_TERM_SOFR_API_PASSWORD }}
         run: |
           set -euo pipefail
           python -u update_sr3_snapshot.py
@@ -61,6 +63,7 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           MACROMICRO_API_KEY: ${{ secrets.MACROMICRO_API_KEY }}
           SKIP_MACROMICRO_OIS: "1"
+          SKIP_CME_TERM_SOFR: "1"
           # Optional reviewed public SR3-settlement export. When absent, the
           # updater uses delayed Yahoo CME quotes as a clearly labelled proxy.
           CME_SR3_FORWARD_URL: ${{ secrets.CME_SR3_FORWARD_URL }}

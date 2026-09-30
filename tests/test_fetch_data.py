@@ -99,6 +99,44 @@ class SnapshotTests(unittest.TestCase):
 
 
 class LiquidityPQGTests(unittest.TestCase):
+    def test_cme_term_sofr_requires_oauth_credentials(self):
+        with patch.dict('os.environ', {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "CME Term SOFR API"):
+                feed.fetch_cme_term_sofr(date(2026, 1, 1), date(2026, 2, 1))
+
+    def test_cme_term_sofr_oauth_and_history_parsing(self):
+        class Response:
+            def __init__(self, payload):
+                self.status_code = 200
+                self._payload = payload
+            def json(self): return self._payload
+        class Session:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def post(self, url, **kwargs):
+                self.token_url = url
+                return Response({"access_token": "short-lived"})
+            def get(self, url, **kwargs):
+                self.history_url = url
+                return Response({"payload": [
+                    {"businessDt": "2026-01-02", "sofrRt": 3.6,
+                     "instrument": {"productCode": "TR1"}},
+                    {"businessDt": "2026-01-02", "sofrRt": 3.5,
+                     "instrument": {"productCode": "TR3"}},
+                    {"businessDt": "2026-01-02", "sofrRt": 3.4,
+                     "instrument": {"productCode": "TR6"}},
+                    {"businessDt": "2026-01-02", "sofrRt": 3.3,
+                     "instrument": {"productCode": "T1Y"}},
+                ], "metadata": {"totalPages": 1}})
+        session = Session()
+        with patch.object(feed, 'http_session', return_value=session):
+            result = feed.fetch_cme_term_sofr(
+                date(2026, 1, 1), date(2026, 2, 1), api_id="id", api_password="password")
+        self.assertEqual(result["term_sofr_1m"], [{"time": "2026-01-02", "value": 3.6}])
+        self.assertEqual(result["term_sofr_1y"], [{"time": "2026-01-02", "value": 3.3}])
+        self.assertNotIn("id", session.history_url)
+        self.assertNotIn("password", session.history_url)
+
     def test_macromicro_chart_csv_maps_all_tenors(self):
         document = (
             "Date,US OIS 1 Month,US OIS 3 Months,US OIS 6 Months,US OIS 1 Year,"

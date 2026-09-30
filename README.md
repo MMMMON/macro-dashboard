@@ -107,6 +107,8 @@ CME 历史结算接口需要相应许可。若仓库 secret `CME_SR3_FORWARD_URL
 
 美国 OIS 期限曲线使用 MacroMicro 官方授权接口。仓库 secret `MACROMICRO_API_KEY` 配置后，每日获取并保存 1M、3M、6M、1Y、2Y、10Y、30Y 从 2000 年起的全部可用历史；未授权或接口失败时只保留已核验缓存，并明确标记延迟，不把即期起息 OIS 与 1Y1Y SR3 远期代理混用。账户导出的官方宽表 CSV 也可执行 `python import_macromicro_ois.py <CSV文件>` 导入，日期列与七个期限列会按名称识别。
 
+直接 OIS 不足时，可用 CME 官方 Term SOFR 作为短端路径代理。配置仓库 secrets `CME_TERM_SOFR_API_ID` 与 `CME_TERM_SOFR_API_PASSWORD` 后，更新器通过 OAuth 获取 1M、3M、6M、12M 从 2020/2021 年起的完整日度历史，只增量补最近日期。看板明确将其标为代理；直接 OIS 数据新鲜且达到 21 个共同观测时自动优先使用直接 OIS。
+
 ### FRED API
 
 `fetch_fred_series(series_id, start, end, api_key=None)` 已完整实现官方 API 接口：

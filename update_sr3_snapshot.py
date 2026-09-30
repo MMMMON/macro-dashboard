@@ -15,6 +15,36 @@ def main():
     start = end - timedelta(days=int(payload.get("history_days", 1095)))
     liquidity_series = payload.get("liquidity_pqg", {}).get("series", {})
     changed = False
+    term_old_dates = [liquidity_series[key].get("last_date") for key in feed.CME_TERM_SOFR
+                      if liquidity_series.get(key, {}).get("last_date")]
+    term_start = (datetime.fromisoformat(min(term_old_dates)).date() - timedelta(days=7)
+                  if len(term_old_dates) == len(feed.CME_TERM_SOFR) else feed.CME_TERM_SOFR_START)
+    try:
+        term_points = feed.fetch_cme_term_sofr(term_start, end)
+    except Exception as exc:
+        term_points = {}
+        print(f"CME Term SOFR unchanged ({type(exc).__name__})")
+    for series_key, (product_code, tenor) in feed.CME_TERM_SOFR.items():
+        old_term = liquidity_series.get(series_key, {})
+        points = term_points.get(series_key, [])
+        if points and old_term.get("data"):
+            points = feed.clean_points(
+                [(p["time"], p["value"]) for p in old_term["data"] + points],
+                feed.CME_TERM_SOFR_START, end)
+        if not points:
+            continue
+        updated_term = feed.make_series({
+            "name": f"CME Term SOFR {tenor}", "symbol": product_code, "unit": "%",
+            "frequency": "daily", "source": "CME Group Term SOFR API",
+            "source_url": "https://www.cmegroup.com/market-data/market-data-api/cme-term-sofr-api.html",
+            "proxy": True, "stale_business_days": 2,
+            "note": "官方前瞻性 Term SOFR；作为短端 OIS 路径代理，不冒充场外 OIS 报价。",
+        }, points, old_term, feed.CME_TERM_SOFR_START, end)
+        if updated_term != old_term:
+            liquidity_series[series_key] = updated_term
+            changed = True
+            print(f"CME Term SOFR {tenor} updated: {updated_term['last_date']}")
+
     for series_key, (stat_id, tenor) in feed.MACROMICRO_OIS.items():
         old_ois = liquidity_series.get(series_key, {})
         try:

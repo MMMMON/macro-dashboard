@@ -22,6 +22,7 @@ function pairedWindowChange(left, right, rows = 20) {
   return { start: start.time, end: end.time, left: end.left - start.left, right: end.right - start.right, observations: rows + 1 };
 }
 function freshness(item) { return !item || item.status === 'unavailable' ? '数据不足' : item.stale ? '数据延迟' : item.status === 'cached' ? '使用缓存' : '已更新'; }
+function isFresh(key) { const item = liquidity.series[key]; return Boolean(item && item.status !== 'unavailable' && !item.stale); }
 function consecutive(points, predicate) { let count = 0; for (let i = points.length - 1; i >= 0 && predicate(points[i].value); i--) count += 1; return count; }
 
 function prepareDerived() {
@@ -31,8 +32,14 @@ function prepareDerived() {
   const tgaChange = changeByRows(series('tga'), 1);
   const spread = sameDay(series('sofr'), series('iorb'), (a, b) => (a - b) * 100);
   const tips20 = changeByRows(series('tips_10y'), 20);
-  const oisShortCenter = meanCommon(['ois_3m', 'ois_6m', 'ois_1y', 'ois_2y'].map(series));
-  const firstLayer = pairedWindowChange(oisShortCenter, series('tips_10y'), 20);
+  const directOisKeys = ['ois_3m', 'ois_6m', 'ois_1y', 'ois_2y'];
+  const termSofrKeys = ['term_sofr_1m', 'term_sofr_3m', 'term_sofr_6m', 'term_sofr_1y'];
+  const oisShortCenter = meanCommon(directOisKeys.map(series));
+  const termSofrCenter = meanCommon(termSofrKeys.map(series));
+  const directLayer = directOisKeys.every(isFresh) ? pairedWindowChange(oisShortCenter, series('tips_10y'), 20) : null;
+  const termLayer = termSofrKeys.every(isFresh) ? pairedWindowChange(termSofrCenter, series('tips_10y'), 20) : null;
+  const firstLayer = directLayer || termLayer;
+  const firstLayerSource = directLayer ? 'direct-ois' : termLayer ? 'term-sofr' : null;
   const curve2s10s = sameDay(series('dgs10'), series('dgs2'), (a, b) => (a - b) * 100);
   const curve5s30s = sameDay(series('dgs30'), series('dgs5'), (a, b) => (a - b) * 100);
   const assets = series('fed_assets');
@@ -40,7 +47,7 @@ function prepareDerived() {
   const rrpBuffer = sameDay(series('on_rrp'), qtActual, (rrp, qt) => rrp - qt);
   const repo = liquidity.repo_series || {};
   const repoTotal = sumCommon(['repo_dvp_total', 'repo_gcf_total', 'repo_tri_total'].map(k => validSeries(repo[k])));
-  return { qTotal, q4w, qAccel, tgaChange, spread, tips20, oisShortCenter, firstLayer, curve2s10s, curve5s30s, qtActual, rrpBuffer, repoTotal };
+  return { qTotal, q4w, qAccel, tgaChange, spread, tips20, oisShortCenter, termSofrCenter, firstLayer, firstLayerSource, curve2s10s, curve5s30s, qtActual, rrpBuffer, repoTotal };
 }
 
 function inferState(d) {
@@ -91,6 +98,15 @@ const PANELS = [
       what: '隔夜指数掉期的固定端利率，按 1M、3M、6M、1Y、2Y、10Y、30Y 分列，反映市场对未来隔夜利率及期限补偿的定价。',
       how: '短端路径中枢取 3M、6M、1Y、2Y 在共同观测日的等权平均。第一层要求它与 10Y 实际利率在同一个 20 个交易日窗口内同时上移，形成 2 项独立确认。',
       mistake: '这些是即期起息期限，并不等于 1Y1Y 远期 OIS；曲线倒挂或变陡也不能单独证明流动性宽松或紧张。' },
+    { id: 'p-term-sofr', title: 'CME Term SOFR · 短端路径代理', unit: '%', lines: d => [
+      { name: '1M Term SOFR', data: series('term_sofr_1m'), color: '#8d281f' },
+      { name: '3M Term SOFR', data: series('term_sofr_3m'), color: '#b45b31' },
+      { name: '6M Term SOFR', data: series('term_sofr_6m'), color: '#c48a24' },
+      { name: '12M Term SOFR', data: series('term_sofr_1y'), color: '#315f8a', width: 3 },
+      { name: '代理路径中枢', data: d.termSofrCenter, color: '#19252e', width: 4 }],
+      what: 'CME 官方前瞻性 Term SOFR，提供 1M、3M、6M、12M 日度历史。直接 OIS 历史不足时，本页用四个期限的共同日期等权平均作为短端路径代理。',
+      how: '代理中枢与 10Y 实际利率在同一个 20 个交易日窗口内都上移，才形成第一层的代理 2/2 确认；直接 OIS 数据充分且新鲜时会自动优先使用直接 OIS。',
+      mistake: 'Term SOFR 由 SOFR 衍生品隐含预期生成，不是场外 OIS 平价掉期报价，也不能替代 2Y 以上的 OIS 曲线。' },
     { id: 'p-short', title: '短端利率与预期路径', unit: '%', lines: () => [{ name: 'IORB', data: series('iorb'), color: '#776f67' }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', width: 3 }, { name: '1Y1Y SR3 代理', data: series('ois_1y1y'), color: '#315f8a' }], what: 'IORB 和 SOFR 是已实现短端；1Y1Y SR3 代理用于读取未来第 13—24 个月的预期中枢。', how: '预期路径与长端实际利率同向，P 的方向才更强。缺失时图表明确留空。', mistake: '降息动作或一天的期货跳动，不等于 P 已经转松。' },
     { id: 'p-real', title: '10Y 实际利率与 20 日变化', unit: '% / pct', lines: d => [{ name: '10Y 实际利率', data: series('tips_10y'), color: '#9d2933', width: 3 }, { name: '20 日变化', data: d.tips20, color: '#a97513', scale: 'left' }], what: '10Y TIPS 是长端实际贴现率；20 个交易日变化显示边际方向。', how: '水平决定约束底线，变化率决定边际压力。', mistake: '名义 10Y、CPI 或短端降息次数都不能替代实际利率。' },
     { id: 'p-curve', title: '收益率曲线、斜率与 10Y ACM 参考', unit: '% / bp', lines: d => [{ name: '2Y', data: series('dgs2'), color: '#9d2933' }, { name: '5Y', data: series('dgs5'), color: '#c26b70' }, { name: '10Y', data: series('dgs10'), color: '#315f8a', width: 3 }, { name: '30Y', data: series('dgs30'), color: '#19252e' }, { name: '2s10s', data: d.curve2s10s, color: '#24756f', scale: 'left' }, { name: '5s30s', data: d.curve5s30s, color: '#72a9a4', scale: 'left' }, { name: '10Y ACM 期限溢价', data: series('acm_10y'), color: '#a97513' }], what: '四个期限描述整条曲线；斜率用基点表示。10Y ACM 是模型估算的期限溢价参考。', how: '熊陡且期限溢价同步上升，才提示长端可能从增长定价切向财政供给定价。', mistake: '10Y ACM 不能冒充 30Y 期限溢价；财政主导仍需人工结合供给与通胀确认。' },
@@ -106,11 +122,12 @@ function createChart(container, panel, d) {
 
 function lastReading(panel, d) { const available = panel.lines(d).filter(line => line.data.length).map(line => `${line.name} ${nf(line.data.at(-1).value, line.name.includes('bp') || panel.unit === '基点' ? 1 : 3)}（${line.data.at(-1).time}）`); if (!available.length) return '数据不足，等待下一次有效更新。'; if (panel.id === 'q-buffer' && d.rrpBuffer.length) { const point = d.rrpBuffer.at(-1); return `${available.slice(0, 3).join(' · ')}。海绵判定：${point.value > 0 ? '正值，缓冲仍在' : '零或负值，缓冲不足'}。`; } return available.slice(0, 3).join(' · '); }
 function firstLayerReading(d) {
-  if (!d.firstLayer) return { state: 'pending', text: '数据不足：短端 OIS 与 10Y 实际利率尚无同一窗口的 21 个共同观测，暂不能计算 20 个交易日变化。' };
+  if (!d.firstLayer) return { state: 'pending', text: '数据不足：直接 OIS 或 CME Term SOFR 代理与 10Y 实际利率尚无同一窗口的 21 个新鲜共同观测，暂不能计算 20 个交易日变化。' };
   const oisUp = d.firstLayer.left > 0; const realUp = d.firstLayer.right > 0; const confirmations = Number(oisUp) + Number(realUp);
   const state = confirmations === 2 ? 'achieved' : 'not-achieved';
   const verdict = confirmations === 2 ? '已达成' : '未达成';
-  return { state, text: `${verdict}（${confirmations}/2 项确认）：${d.firstLayer.start} 至 ${d.firstLayer.end}，短端 OIS 路径中枢 ${d.firstLayer.left >= 0 ? '+' : ''}${nf(d.firstLayer.left, 3)} pct；10Y 实际利率 ${d.firstLayer.right >= 0 ? '+' : ''}${nf(d.firstLayer.right, 3)} pct。` };
+  const source = d.firstLayerSource === 'direct-ois' ? '直接 OIS' : 'CME Term SOFR 代理';
+  return { state, text: `${verdict}（${confirmations}/2 项确认，来源：${source}）：${d.firstLayer.start} 至 ${d.firstLayer.end}，短端路径中枢 ${d.firstLayer.left >= 0 ? '+' : ''}${nf(d.firstLayer.left, 3)} pct；10Y 实际利率 ${d.firstLayer.right >= 0 ? '+' : ''}${nf(d.firstLayer.right, 3)} pct。` };
 }
 function renderDashboard(d) {
   const root = $('dashboard-sections'); root.replaceChildren(); chartViews.length = 0;
@@ -119,7 +136,7 @@ function renderDashboard(d) {
   applyRange();
 }
 function explanation(label, value) { const p = el('p'); p.append(el('strong', '', `${label}：`), document.createTextNode(value)); return p; }
-function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'q-buffer' ? '海绵差值 = 同一观测日 ON RRP − max（四周前 Fed 总资产 − 当前 Fed 总资产，0）。只使用共同日期。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-ois' ? '短端 OIS 路径中枢 =（3M + 6M + 1Y + 2Y）÷ 4，仅使用四条曲线与 10Y 实际利率都有值的共同交易日。以第 21 个共同观测减第 1 个共同观测，得到 20 个交易日变化；两项变化都大于 0 才算 2/2 独立确认并判定第一层达成。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
+function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'q-buffer' ? '海绵差值 = 同一观测日 ON RRP − max（四周前 Fed 总资产 − 当前 Fed 总资产，0）。只使用共同日期。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-ois' ? '直接 OIS 中枢 =（3M + 6M + 1Y + 2Y）÷ 4；若直接数据不足，则使用 CME Term SOFR 代理中枢 =（1M + 3M + 6M + 12M）÷ 4。只使用各组四条曲线与 10Y 实际利率都有值的共同交易日；直接 OIS 新鲜且完整时优先。以第 21 个共同观测减第 1 个共同观测，得到 20 个交易日变化；两项变化都大于 0 才算 2/2 独立确认。' : panel.id === 'p-term-sofr' ? '代理路径中枢 =（1M + 3M + 6M + 12M CME Term SOFR）÷ 4，只在四个期限具有共同观测日时计算。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
 
 function applyRange() { const days = RANGE_DAYS[currentRange]; chartViews.forEach(view => { const all = view.created.flatMap(x => x.spec.data); if (!all.length) return; const end = new Date(`${all.map(p => p.time).sort().at(-1)}T00:00:00Z`); if (Number.isFinite(days)) { const start = new Date(end); start.setUTCDate(start.getUTCDate() - days); view.chart.timeScale().setVisibleRange({ from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) }); } else view.chart.timeScale().fitContent(); }); }
 

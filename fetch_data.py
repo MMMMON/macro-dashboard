@@ -72,6 +72,13 @@ MACROMICRO_OIS = {
     "ois_30y": (43605, "30Y"),
 }
 MACROMICRO_OIS_START = date(2000, 1, 1)
+CME_TERM_SOFR = {
+    "term_sofr_1m": ("TR1", "1M"),
+    "term_sofr_3m": ("TR3", "3M"),
+    "term_sofr_6m": ("TR6", "6M"),
+    "term_sofr_1y": ("T1Y", "12M"),
+}
+CME_TERM_SOFR_START = date(2020, 9, 15)
 OFR_BASE = "https://data.financialresearch.gov/v1"
 OFR_REPO = {
     "repo_dvp_total": "REPO-DVP_TV_TOT-P",
@@ -149,6 +156,60 @@ def fetch_macromicro_series(stat_id: int, start: date, end: date, api_key=None):
     if not isinstance(rows, list):
         raise RuntimeError("MacroMicro API 数据格式已变化")
     return clean_points(((row.get("date"), row.get("val")) for row in rows), start, end)
+
+
+def fetch_cme_term_sofr(start: date, end: date, api_id=None, api_password=None):
+    """Fetch licensed CME Term SOFR history with short-lived OAuth credentials."""
+    client_id = api_id or os.getenv("CME_TERM_SOFR_API_ID")
+    password = api_password or os.getenv("CME_TERM_SOFR_API_PASSWORD")
+    if not client_id or not password:
+        raise RuntimeError("未配置 CME Term SOFR API 授权")
+    with http_session() as session:
+        token_response = session.post(
+            "https://auth.cmegroup.com/as/token.oauth2",
+            auth=(client_id, password),
+            data={"grant_type": "client_credentials"},
+            timeout=(10, 35),
+        )
+        if token_response.status_code != 200:
+            raise RuntimeError(f"CME OAuth HTTP {token_response.status_code}")
+        token = token_response.json().get("access_token")
+        if not token:
+            raise RuntimeError("CME OAuth 未返回访问令牌")
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "CME-Application-Name": "Macro Atlas",
+            "CME-Application-Vendor": "Macro Atlas",
+            "CME-Application-Version": "1.0",
+        }
+        params = {
+            "productCodes": ",".join(code for code, _ in CME_TERM_SOFR.values()),
+            "startDate": start.isoformat(),
+            "endDate": (end - timedelta(days=1)).isoformat(),
+            "pageSize": 2000,
+        }
+        rows, page = [], 1
+        while True:
+            response = session.get(
+                "https://markets.api.cmegroup.com/term-sofr-rates/v1/history",
+                headers=headers, params={**params, "pageNumber": page}, timeout=(10, 35))
+            if response.status_code != 200:
+                raise RuntimeError(f"CME Term SOFR HTTP {response.status_code}")
+            payload = response.json()
+            rows.extend(payload.get("payload", []))
+            total_pages = int(payload.get("metadata", {}).get("totalPages", 1))
+            if page >= total_pages:
+                break
+            page += 1
+    by_code = {code: [] for code, _ in CME_TERM_SOFR.values()}
+    for row in rows:
+        code = (row.get("instrument") or {}).get("productCode")
+        if code in by_code:
+            by_code[code].append((row.get("businessDt"), row.get("sofrRt")))
+    return {
+        key: clean_points(by_code[code], start, end)
+        for key, (code, _) in CME_TERM_SOFR.items()
+    }
 
 
 def parse_treasury_xml(document, field, start, end):
@@ -775,6 +836,34 @@ def main():
                 "最近有效交易日值"
             ),
         }, points, liquidity_old.get(key, {}), start, end, error or "FRED 无有效观测")
+
+    term_old_dates = [item.get("last_date") for key, item in liquidity_old.items()
+                      if key in CME_TERM_SOFR and item.get("last_date")]
+    term_start = (date.fromisoformat(min(term_old_dates)) - timedelta(days=7)
+                  if len(term_old_dates) == len(CME_TERM_SOFR) else CME_TERM_SOFR_START)
+    term_points, term_error = {}, None
+    if os.getenv("SKIP_CME_TERM_SOFR") != "1":
+        try:
+            term_points = fetch_cme_term_sofr(term_start, end)
+        except Exception as exc:
+            term_error = f"CME Term SOFR 暂不可用（{type(exc).__name__}）"
+    for key, (product_code, tenor) in CME_TERM_SOFR.items():
+        if os.getenv("SKIP_CME_TERM_SOFR") == "1" and liquidity_old.get(key):
+            liquidity_series[key] = liquidity_old[key]
+            continue
+        points = term_points.get(key, [])
+        if points and liquidity_old.get(key, {}).get("data"):
+            points = clean_points(
+                [(p["time"], p["value"]) for p in liquidity_old[key]["data"] + points],
+                CME_TERM_SOFR_START, end)
+        liquidity_series[key] = make_series({
+            "name": f"CME Term SOFR {tenor}", "symbol": product_code, "unit": "%",
+            "frequency": "daily", "source": "CME Group Term SOFR API",
+            "source_url": "https://www.cmegroup.com/market-data/market-data-api/cme-term-sofr-api.html",
+            "proxy": True, "stale_business_days": 2,
+            "note": "官方前瞻性 Term SOFR；作为短端 OIS 路径代理，不冒充场外 OIS 报价。",
+        }, points, liquidity_old.get(key, {}), CME_TERM_SOFR_START, end,
+           term_error or "CME Term SOFR 无有效观测")
 
     for key, (stat_id, tenor) in MACROMICRO_OIS.items():
         if os.getenv("SKIP_MACROMICRO_OIS") == "1" and liquidity_old.get(key):
