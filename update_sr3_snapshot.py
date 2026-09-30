@@ -18,7 +18,7 @@ def main():
     for series_key, (stat_id, tenor) in feed.MACROMICRO_OIS.items():
         old_ois = liquidity_series.get(series_key, {})
         try:
-            points = feed.fetch_macromicro_series(stat_id, start, end)
+            points = feed.fetch_macromicro_series(stat_id, feed.MACROMICRO_OIS_START, end)
         except Exception as exc:
             print(f"MacroMicro OIS {tenor} unchanged ({type(exc).__name__})")
             continue
@@ -28,7 +28,7 @@ def main():
             "source_url": f"https://en.macromicro.me/series/{stat_id}",
             "stale_business_days": 2,
             "note": "即期起息 OIS 固定端利率；MacroMicro 授权接口。它不是 1Y1Y 远期利率。",
-        }, points, old_ois, start, end)
+        }, points, old_ois, feed.MACROMICRO_OIS_START, end)
         if updated_ois != old_ois:
             liquidity_series[series_key] = updated_ois
             changed = True

@@ -105,7 +105,7 @@ Repo 规则：最近两个 10 个交易日窗口，定期成交占比上升至�
 
 CME 历史结算接口需要相应许可。若仓库 secret `CME_SR3_FORWARD_URL` 指向经审核的 CME SR3 季度合约结算 JSON，抓取器优先使用该数据；否则使用 Yahoo Finance 提供的 CME 延迟行情作为免费兜底。两种来源都按观察日后第 13–24 个月的合约参考期重叠天数加权，且覆盖少于 330 天时不发布数值。免费兜底明确标注为行情代理，并非 CME 官方结算或交易终端原始 OIS；上游延迟或格式不完整时继续显示“待核验”。
 
-美国 OIS 期限曲线使用 MacroMicro 官方授权接口。仓库 secret `MACROMICRO_API_KEY` 配置后，每日获取 1M、3M、6M、1Y、2Y、10Y、30Y；未授权或接口失败时只保留已核验缓存，并明确标记延迟，不把即期起息 OIS 与 1Y1Y SR3 远期代理混用。
+美国 OIS 期限曲线使用 MacroMicro 官方授权接口。仓库 secret `MACROMICRO_API_KEY` 配置后，每日获取并保存 1M、3M、6M、1Y、2Y、10Y、30Y 从 2000 年起的全部可用历史；未授权或接口失败时只保留已核验缓存，并明确标记延迟，不把即期起息 OIS 与 1Y1Y SR3 远期代理混用。账户导出的官方宽表 CSV 也可执行 `python import_macromicro_ois.py <CSV文件>` 导入，日期列与七个期限列会按名称识别。
 
 ### FRED API
 

@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import fetch_data as feed
+import import_macromicro_ois as ois_import
 
 
 class SnapshotTests(unittest.TestCase):
@@ -98,6 +99,16 @@ class SnapshotTests(unittest.TestCase):
 
 
 class LiquidityPQGTests(unittest.TestCase):
+    def test_macromicro_chart_csv_maps_all_tenors(self):
+        document = (
+            "Date,US OIS 1 Month,US OIS 3 Months,US OIS 6 Months,US OIS 1 Year,"
+            "US OIS 2 Years,US OIS 10 Years,US OIS 30 Years\n"
+            "2026-01-02,1,2,3,4,5,6,7\n"
+        )
+        parsed = ois_import.parse_chart_csv(document)
+        self.assertEqual(parsed["ois_1m"], [("2026-01-02", "1")])
+        self.assertEqual(parsed["ois_30y"], [("2026-01-02", "7")])
+
     def test_macromicro_requires_api_authorization(self):
         with patch.dict('os.environ', {}, clear=True):
             with self.assertRaisesRegex(RuntimeError, "MacroMicro API"):

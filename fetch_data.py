@@ -71,6 +71,7 @@ MACROMICRO_OIS = {
     "ois_10y": (43603, "10Y"),
     "ois_30y": (43605, "30Y"),
 }
+MACROMICRO_OIS_START = date(2000, 1, 1)
 OFR_BASE = "https://data.financialresearch.gov/v1"
 OFR_REPO = {
     "repo_dvp_total": "REPO-DVP_TV_TOT-P",
@@ -780,7 +781,7 @@ def main():
             liquidity_series[key] = liquidity_old[key]
             continue
         try:
-            points, error = fetch_macromicro_series(stat_id, start, end), None
+            points, error = fetch_macromicro_series(stat_id, MACROMICRO_OIS_START, end), None
         except Exception as exc:
             points, error = [], f"MacroMicro OIS 暂不可用（{type(exc).__name__}）"
         liquidity_series[key] = make_series({
@@ -789,7 +790,7 @@ def main():
             "source_url": f"https://en.macromicro.me/series/{stat_id}",
             "stale_business_days": 2,
             "note": "即期起息 OIS 固定端利率；MacroMicro 授权接口。它不是 1Y1Y 远期利率。",
-        }, points, liquidity_old.get(key, {}), start, end,
+        }, points, liquidity_old.get(key, {}), MACROMICRO_OIS_START, end,
            error or "MacroMicro OIS 无有效观测")
 
     ois_source = "CME Group SR3"
