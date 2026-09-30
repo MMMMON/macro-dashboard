@@ -13,6 +13,14 @@ function latest(points) { return points.length ? points.at(-1) : null; }
 function sameDay(left, right, operation) { const map = new Map(right.map(p => [p.time, p.value])); return left.filter(p => map.has(p.time)).map(p => ({ time: p.time, value: operation(p.value, map.get(p.time)) })); }
 function changeByRows(points, rows, multiplier = 1) { return points.slice(rows).map((p, i) => ({ time: p.time, value: (p.value - points[i].value) * multiplier })); }
 function sumCommon(items) { if (!items.length || items.some(a => !a.length)) return []; const maps = items.slice(1).map(a => new Map(a.map(p => [p.time, p.value]))); return items[0].filter(p => maps.every(m => m.has(p.time))).map(p => ({ time: p.time, value: p.value + maps.reduce((sum, m) => sum + m.get(p.time), 0) })); }
+function meanCommon(items) { const summed = sumCommon(items); return summed.map(p => ({ time: p.time, value: p.value / items.length })); }
+function pairedWindowChange(left, right, rows = 20) {
+  const rightMap = new Map(right.map(p => [p.time, p.value]));
+  const paired = left.filter(p => rightMap.has(p.time)).map(p => ({ time: p.time, left: p.value, right: rightMap.get(p.time) }));
+  if (paired.length <= rows) return null;
+  const end = paired.at(-1); const start = paired.at(-1 - rows);
+  return { start: start.time, end: end.time, left: end.left - start.left, right: end.right - start.right, observations: rows + 1 };
+}
 function freshness(item) { return !item || item.status === 'unavailable' ? '数据不足' : item.stale ? '数据延迟' : item.status === 'cached' ? '使用缓存' : '已更新'; }
 function consecutive(points, predicate) { let count = 0; for (let i = points.length - 1; i >= 0 && predicate(points[i].value); i--) count += 1; return count; }
 
@@ -23,6 +31,8 @@ function prepareDerived() {
   const tgaChange = changeByRows(series('tga'), 1);
   const spread = sameDay(series('sofr'), series('iorb'), (a, b) => (a - b) * 100);
   const tips20 = changeByRows(series('tips_10y'), 20);
+  const oisShortCenter = meanCommon(['ois_3m', 'ois_6m', 'ois_1y', 'ois_2y'].map(series));
+  const firstLayer = pairedWindowChange(oisShortCenter, series('tips_10y'), 20);
   const curve2s10s = sameDay(series('dgs10'), series('dgs2'), (a, b) => (a - b) * 100);
   const curve5s30s = sameDay(series('dgs30'), series('dgs5'), (a, b) => (a - b) * 100);
   const assets = series('fed_assets');
@@ -30,7 +40,7 @@ function prepareDerived() {
   const rrpBuffer = sameDay(series('on_rrp'), qtActual, (rrp, qt) => rrp - qt);
   const repo = liquidity.repo_series || {};
   const repoTotal = sumCommon(['repo_dvp_total', 'repo_gcf_total', 'repo_tri_total'].map(k => validSeries(repo[k])));
-  return { qTotal, q4w, qAccel, tgaChange, spread, tips20, curve2s10s, curve5s30s, qtActual, rrpBuffer, repoTotal };
+  return { qTotal, q4w, qAccel, tgaChange, spread, tips20, oisShortCenter, firstLayer, curve2s10s, curve5s30s, qtActual, rrpBuffer, repoTotal };
 }
 
 function inferState(d) {
@@ -73,13 +83,13 @@ const PANELS = [
     { id: 'g-repo', title: 'Repo 成交量与资金价格', unit: '量：万亿美元 / 价：%', lines: d => [{ name: 'Repo 总成交量', data: d.repoTotal, color: '#24756f', width: 3 }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', scale: 'left' }], what: 'OFR 三类 Repo 成交量与 SOFR 上下对齐，观察资金量和融资价格是否共同变化。', how: '价格上行同时伴随结构或成交异常，比单看价格更接近扩散证据。', mistake: '成交量上升可能只是正常融资需求，不等于缺钱。' },
   ]},
   { section: 'p', icon: '♨', title: 'P · 钱的价格', intro: '短端看水平与预期路径，长端看实际利率和期限溢价的变化。', panels: [
-    { id: 'p-ois', title: '美国 OIS 期限曲线（MacroMicro）', unit: '%', lines: () => [
+    { id: 'p-ois', title: '美国 OIS 期限曲线（MacroMicro）', unit: '%', lines: d => [
       { name: '1M', data: series('ois_1m'), color: '#8d281f' }, { name: '3M', data: series('ois_3m'), color: '#b45b31' },
       { name: '6M', data: series('ois_6m'), color: '#c48a24' }, { name: '1Y', data: series('ois_1y'), color: '#24756f', width: 3 },
       { name: '2Y', data: series('ois_2y'), color: '#315f8a', width: 3 }, { name: '10Y', data: series('ois_10y'), color: '#65508f' },
-      { name: '30Y', data: series('ois_30y'), color: '#776f67' }],
+      { name: '30Y', data: series('ois_30y'), color: '#776f67' }, { name: '短端路径中枢', data: d.oisShortCenter, color: '#19252e', width: 4 }],
       what: '隔夜指数掉期的固定端利率，按 1M、3M、6M、1Y、2Y、10Y、30Y 分列，反映市场对未来隔夜利率及期限补偿的定价。',
-      how: '先比较短端 1M—2Y 的斜率，再看它与 10Y、30Y 是否同向。每条图例都列出最新值和真实观测日期。',
+      how: '短端路径中枢取 3M、6M、1Y、2Y 在共同观测日的等权平均。第一层要求它与 10Y 实际利率在同一个 20 个交易日窗口内同时上移，形成 2 项独立确认。',
       mistake: '这些是即期起息期限，并不等于 1Y1Y 远期 OIS；曲线倒挂或变陡也不能单独证明流动性宽松或紧张。' },
     { id: 'p-short', title: '短端利率与预期路径', unit: '%', lines: () => [{ name: 'IORB', data: series('iorb'), color: '#776f67' }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', width: 3 }, { name: '1Y1Y SR3 代理', data: series('ois_1y1y'), color: '#315f8a' }], what: 'IORB 和 SOFR 是已实现短端；1Y1Y SR3 代理用于读取未来第 13—24 个月的预期中枢。', how: '预期路径与长端实际利率同向，P 的方向才更强。缺失时图表明确留空。', mistake: '降息动作或一天的期货跳动，不等于 P 已经转松。' },
     { id: 'p-real', title: '10Y 实际利率与 20 日变化', unit: '% / pct', lines: d => [{ name: '10Y 实际利率', data: series('tips_10y'), color: '#9d2933', width: 3 }, { name: '20 日变化', data: d.tips20, color: '#a97513', scale: 'left' }], what: '10Y TIPS 是长端实际贴现率；20 个交易日变化显示边际方向。', how: '水平决定约束底线，变化率决定边际压力。', mistake: '名义 10Y、CPI 或短端降息次数都不能替代实际利率。' },
@@ -95,14 +105,21 @@ function createChart(container, panel, d) {
 }
 
 function lastReading(panel, d) { const available = panel.lines(d).filter(line => line.data.length).map(line => `${line.name} ${nf(line.data.at(-1).value, line.name.includes('bp') || panel.unit === '基点' ? 1 : 3)}（${line.data.at(-1).time}）`); if (!available.length) return '数据不足，等待下一次有效更新。'; if (panel.id === 'q-buffer' && d.rrpBuffer.length) { const point = d.rrpBuffer.at(-1); return `${available.slice(0, 3).join(' · ')}。海绵判定：${point.value > 0 ? '正值，缓冲仍在' : '零或负值，缓冲不足'}。`; } return available.slice(0, 3).join(' · '); }
+function firstLayerReading(d) {
+  if (!d.firstLayer) return { state: 'pending', text: '数据不足：短端 OIS 与 10Y 实际利率尚无同一窗口的 21 个共同观测，暂不能计算 20 个交易日变化。' };
+  const oisUp = d.firstLayer.left > 0; const realUp = d.firstLayer.right > 0; const confirmations = Number(oisUp) + Number(realUp);
+  const state = confirmations === 2 ? 'achieved' : 'not-achieved';
+  const verdict = confirmations === 2 ? '已达成' : '未达成';
+  return { state, text: `${verdict}（${confirmations}/2 项确认）：${d.firstLayer.start} 至 ${d.firstLayer.end}，短端 OIS 路径中枢 ${d.firstLayer.left >= 0 ? '+' : ''}${nf(d.firstLayer.left, 3)} pct；10Y 实际利率 ${d.firstLayer.right >= 0 ? '+' : ''}${nf(d.firstLayer.right, 3)} pct。` };
+}
 function renderDashboard(d) {
   const root = $('dashboard-sections'); root.replaceChildren(); chartViews.length = 0;
   PANELS.forEach(group => { const section = el('section', `factor-section factor-${group.section}`); const head = el('div', 'factor-heading'); head.append(el('span', 'factor-icon large', group.icon), el('div')); head.lastChild.append(el('p', 'eyebrow', `LAYER / ${group.section.toUpperCase()}`), el('h2', '', group.title), el('p', '', group.intro)); section.append(head);
-    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const point = latest(line.data); const item = el('span', '', point ? `${line.name} ${nf(point.value, panel.unit === '基点' ? 1 : 3)} · ${point.time}` : `${line.name} · 暂无数据`); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what), explanation('怎么看', panel.how), explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
+    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const point = latest(line.data); const item = el('span', '', point ? `${line.name} ${nf(point.value, panel.unit === '基点' ? 1 : 3)} · ${point.time}` : `${line.name} · 暂无数据`); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what), explanation('怎么看', panel.how)); if (panel.id === 'p-ois') { const verdict = firstLayerReading(d); const row = explanation('第一层判定', verdict.text); row.className = `layer-verdict ${verdict.state}`; explainer.append(row); } explainer.append(explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
   applyRange();
 }
 function explanation(label, value) { const p = el('p'); p.append(el('strong', '', `${label}：`), document.createTextNode(value)); return p; }
-function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'q-buffer' ? '海绵差值 = 同一观测日 ON RRP − max（四周前 Fed 总资产 − 当前 Fed 总资产，0）。只使用共同日期。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
+function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'q-buffer' ? '海绵差值 = 同一观测日 ON RRP − max（四周前 Fed 总资产 − 当前 Fed 总资产，0）。只使用共同日期。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-ois' ? '短端 OIS 路径中枢 =（3M + 6M + 1Y + 2Y）÷ 4，仅使用四条曲线与 10Y 实际利率都有值的共同交易日。以第 21 个共同观测减第 1 个共同观测，得到 20 个交易日变化；两项变化都大于 0 才算 2/2 独立确认并判定第一层达成。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
 
 function applyRange() { const days = RANGE_DAYS[currentRange]; chartViews.forEach(view => { const all = view.created.flatMap(x => x.spec.data); if (!all.length) return; const end = new Date(`${all.map(p => p.time).sort().at(-1)}T00:00:00Z`); if (Number.isFinite(days)) { const start = new Date(end); start.setUTCDate(start.getUTCDate() - days); view.chart.timeScale().setVisibleRange({ from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) }); } else view.chart.timeScale().fitContent(); }); }
 
