@@ -349,11 +349,101 @@ def fetch_cme_sr3_forward(start: date, end: date):
             overlap = max(0, (min(contract_end, window_end) - max(contract_start, window_start)).days)
             weighted_rate += overlap * (100 - settlement)
             weight += overlap
-        if weight:
+        if weight >= 330:
             points.append({"time": observed_day.isoformat(), "value": weighted_rate / weight})
     if not points:
         raise RuntimeError("CME SR3 结算源缺少可推导的季度合约")
     return clean_points(((point["time"], point["value"]) for point in points), start, end)
+
+
+def third_wednesday(year: int, month: int):
+    """Return the third Wednesday used by CME quarterly SR3 reference periods."""
+    first = date(year, month, 1)
+    return first + timedelta(days=(2 - first.weekday()) % 7 + 14)
+
+
+def add_months(day: date, months: int):
+    index = day.year * 12 + day.month - 1 + months
+    return date(index // 12, index % 12 + 1, 1)
+
+
+def derive_sr3_1y1y(contract_points, start: date, end: date):
+    """Weight quarterly implied rates over the window one to two years forward."""
+    grouped = defaultdict(list)
+    for contract_start, contract_end, points in contract_points:
+        for point in points:
+            grouped[date.fromisoformat(point["time"])].append(
+                (contract_start, contract_end, 100 - point["value"]))
+
+    output = []
+    for observed_day, contracts in grouped.items():
+        window_start = pd.Timestamp(observed_day) + pd.DateOffset(years=1)
+        window_end = pd.Timestamp(observed_day) + pd.DateOffset(years=2)
+        window_start, window_end = window_start.date(), window_end.date()
+        weighted_rate = weight = 0
+        for contract_start, contract_end, implied_rate in contracts:
+            overlap = max(0, (min(contract_end, window_end) - max(contract_start, window_start)).days)
+            weighted_rate += overlap * implied_rate
+            weight += overlap
+        # A missing quarterly leg can materially distort the result. Require at
+        # least 330 days of the 1Y1Y window before publishing a proxy value.
+        if weight >= 330:
+            output.append((observed_day, weighted_rate / weight))
+    return clean_points(output, start, end)
+
+
+def fetch_yahoo_sr3_forward(start: date, end: date):
+    """Free fallback: derive 1Y1Y from delayed Yahoo Finance CME SR3 closes.
+
+    Yahoo removes some expired contracts, so this source backfills only the
+    period supported by contracts that remain listed. Cached observations are
+    retained by ``make_series`` and build a longer history over time.
+    """
+    month_codes = {3: "H", 6: "M", 9: "U", 12: "Z"}
+    contracts = []
+    # Include enough quarterly legs to cover every observation's 1Y1Y window.
+    for year in range(start.year, end.year + 3):
+        for month, code in month_codes.items():
+            reference_start = third_wednesday(year, month)
+            next_quarter = add_months(reference_start, 3)
+            reference_end = third_wednesday(next_quarter.year, next_quarter.month)
+            if reference_end < start + timedelta(days=330) or reference_start > end + timedelta(days=740):
+                continue
+            contracts.append((f"SR3{code}{year % 100:02d}.CME", reference_start, reference_end))
+
+    period1 = int(datetime(start.year, start.month, start.day, tzinfo=timezone.utc).timestamp())
+    period2 = int(datetime(end.year, end.month, end.day, tzinfo=timezone.utc).timestamp())
+
+    def fetch_contract(item):
+        symbol, reference_start, reference_end = item
+        with http_session() as session:
+            response = session.get(
+                f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
+                params={"period1": period1, "period2": period2, "interval": "1d", "events": "history"},
+                timeout=(10, 35),
+            )
+            if response.status_code != 200:
+                return reference_start, reference_end, []
+            chart = response.json().get("chart", {})
+            result = chart.get("result") or []
+            if not result:
+                return reference_start, reference_end, []
+            payload = result[0]
+            timestamps = payload.get("timestamp") or []
+            quotes = (payload.get("indicators", {}).get("quote") or [{}])[0]
+            closes = quotes.get("close") or []
+            rows = []
+            for timestamp, value in zip(timestamps, closes):
+                if value is not None and 0 < float(value) < 100:
+                    rows.append((datetime.fromtimestamp(timestamp, timezone.utc).date(), value))
+            return reference_start, reference_end, clean_points(rows, start, end)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        contract_points = list(pool.map(fetch_contract, contracts))
+    points = derive_sr3_1y1y(contract_points, start, end)
+    if not points:
+        raise RuntimeError("Yahoo SR3 行情不足以覆盖完整 1Y1Y 窗口")
+    return points
 
 
 def fetch_acm_10y_term_premium(start: date, end: date):
@@ -647,14 +737,34 @@ def main():
             ),
         }, points, liquidity_old.get(key, {}), start, end, error or "FRED 无有效观测")
 
+    ois_source = "CME Group SR3"
+    ois_source_url = "https://www.cmegroup.com/markets/interest-rates/stirs/three-month-sofr.html"
+    ois_note = "以经审核的 SR3 结算价推导 1Y1Y SOFR 远期代理；并非交易终端原始 OIS"
+    ois_incremental = False
     try:
         points, error = fetch_cme_sr3_forward(start, end), None
-    except Exception as exc:
-        points, error = [], f"CME SR3 远期代理待核验（{type(exc).__name__}）"
+    except Exception as cme_exc:
+        try:
+            points, error = fetch_yahoo_sr3_forward(start, end), None
+            ois_source = "Yahoo Finance（CME 延迟行情）"
+            ois_source_url = "https://finance.yahoo.com/"
+            ois_incremental = True
+            ois_note = (
+                "免费兜底：以 Yahoo Finance 提供的 CME SR3 日收盘价，按未来第 13—24 个月"
+                "参考期重叠天数加权推导；属于行情代理，并非 CME 官方结算或原始 OIS。"
+            )
+        except Exception as yahoo_exc:
+            points = []
+            error = (f"CME SR3 官方源不可用（{type(cme_exc).__name__}）；"
+                     f"免费行情兜底失败（{type(yahoo_exc).__name__}）")
+    if ois_incremental and liquidity_old.get("ois_1y1y", {}).get("source") == ois_source:
+        cached = liquidity_old["ois_1y1y"].get("data", [])
+        points = clean_points(
+            [(p["time"], p["value"]) for p in cached + points], start, end)
     liquidity_series["ois_1y1y"] = make_series({
         "name": "1Y1Y SOFR 远期代理", "symbol": "SR3 forward proxy", "unit": "%", "frequency": "daily",
-        "source": "CME Group SR3", "source_url": "https://www.cmegroup.com/markets/interest-rates/stirs/three-month-sofr.html",
-        "note": "以 SR3 结算价推导的 1Y1Y SOFR 远期代理；并非交易终端原始 OIS",
+        "source": ois_source, "source_url": ois_source_url, "proxy": True,
+        "note": ois_note,
     }, points, liquidity_old.get("ois_1y1y", {}), start, end, error or "CME SR3 远期代理无有效观测")
 
     try:

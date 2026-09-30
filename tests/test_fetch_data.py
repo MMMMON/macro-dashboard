@@ -151,6 +151,8 @@ class LiquidityPQGTests(unittest.TestCase):
                 return {"contracts": [
                     {"time": "2026-01-01", "reference_start": "2027-01-01", "reference_end": "2027-04-01", "settlement": 96},
                     {"time": "2026-01-01", "reference_start": "2027-04-01", "reference_end": "2027-07-01", "settlement": 95},
+                    {"time": "2026-01-01", "reference_start": "2027-07-01", "reference_end": "2027-10-01", "settlement": 95},
+                    {"time": "2026-01-01", "reference_start": "2027-10-01", "reference_end": "2028-01-01", "settlement": 94},
                 ]}
 
         class Session:
@@ -162,7 +164,26 @@ class LiquidityPQGTests(unittest.TestCase):
              patch.object(feed, 'http_session', return_value=Session()):
             result = feed.fetch_cme_sr3_forward(date(2026, 1, 1), date(2026, 2, 1))
         self.assertEqual(result[0]["time"], "2026-01-01")
-        self.assertAlmostEqual(result[0]["value"], 4.502762, places=6)
+        self.assertAlmostEqual(result[0]["value"], 5.005479, places=6)
+
+    def test_yahoo_sr3_derivation_requires_nearly_complete_forward_window(self):
+        observed = "2026-01-02"
+        complete = [
+            (date(2027, 1, 1), date(2027, 4, 1), [{"time": observed, "value": 96.0}]),
+            (date(2027, 4, 1), date(2027, 7, 1), [{"time": observed, "value": 95.5}]),
+            (date(2027, 7, 1), date(2027, 10, 1), [{"time": observed, "value": 95.0}]),
+            (date(2027, 10, 1), date(2028, 1, 5), [{"time": observed, "value": 94.5}]),
+        ]
+        result = feed.derive_sr3_1y1y(complete, date(2026, 1, 1), date(2026, 2, 1))
+        self.assertEqual(len(result), 1)
+        self.assertGreater(result[0]["value"], 4.0)
+        self.assertLess(result[0]["value"], 5.6)
+
+        missing_quarter = complete[:3]
+        self.assertEqual(
+            feed.derive_sr3_1y1y(missing_quarter, date(2026, 1, 1), date(2026, 2, 1)),
+            [],
+        )
 
     def test_acm_term_premium_parses_official_monthly_download(self):
         class Response:
