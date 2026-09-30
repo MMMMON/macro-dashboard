@@ -62,6 +62,15 @@ LIQUIDITY_FRED = {
     "dgs10": ("DGS10", "美国 10Y 国债收益率", "%", 1),
     "dgs30": ("DGS30", "美国 30Y 国债收益率", "%", 1),
 }
+MACROMICRO_OIS = {
+    "ois_1m": (43596, "1M"),
+    "ois_3m": (43597, "3M"),
+    "ois_6m": (43598, "6M"),
+    "ois_1y": (43599, "1Y"),
+    "ois_2y": (43600, "2Y"),
+    "ois_10y": (43603, "10Y"),
+    "ois_30y": (43605, "30Y"),
+}
 OFR_BASE = "https://data.financialresearch.gov/v1"
 OFR_REPO = {
     "repo_dvp_total": "REPO-DVP_TV_TOT-P",
@@ -119,6 +128,26 @@ def fetch_fred_series(series_id: str, start: date, end: date, api_key=None):
             reader = csv.DictReader(io.StringIO(response.text))
             rows = [(r.get("observation_date", r.get("DATE")), r.get(series_id)) for r in reader]
     return clean_points(rows, start, end)
+
+
+def fetch_macromicro_series(stat_id: int, start: date, end: date, api_key=None):
+    """Fetch one licensed MacroMicro series without exposing its bearer token."""
+    key = api_key or os.getenv("MACROMICRO_API_KEY")
+    if not key:
+        raise RuntimeError("未配置 MacroMicro API 授权")
+    with http_session() as session:
+        response = session.get(
+            f"https://api.macromicro.me/v1/stats/series/{stat_id}",
+            headers={"Authorization": f"Bearer {key}", "Accept": "application/json"},
+            timeout=(10, 35),
+        )
+        if response.status_code != 200:
+            raise RuntimeError(f"MacroMicro API HTTP {response.status_code}")
+        payload = response.json()
+    rows = payload.get("series", [])
+    if not isinstance(rows, list):
+        raise RuntimeError("MacroMicro API 数据格式已变化")
+    return clean_points(((row.get("date"), row.get("val")) for row in rows), start, end)
 
 
 def parse_treasury_xml(document, field, start, end):
@@ -746,6 +775,23 @@ def main():
             ),
         }, points, liquidity_old.get(key, {}), start, end, error or "FRED 无有效观测")
 
+    for key, (stat_id, tenor) in MACROMICRO_OIS.items():
+        if os.getenv("SKIP_MACROMICRO_OIS") == "1" and liquidity_old.get(key):
+            liquidity_series[key] = liquidity_old[key]
+            continue
+        try:
+            points, error = fetch_macromicro_series(stat_id, start, end), None
+        except Exception as exc:
+            points, error = [], f"MacroMicro OIS 暂不可用（{type(exc).__name__}）"
+        liquidity_series[key] = make_series({
+            "name": f"美国 OIS {tenor}", "symbol": f"MacroMicro {stat_id}", "unit": "%",
+            "frequency": "daily", "source": "MacroMicro",
+            "source_url": f"https://en.macromicro.me/series/{stat_id}",
+            "stale_business_days": 2,
+            "note": "即期起息 OIS 固定端利率；MacroMicro 授权接口。它不是 1Y1Y 远期利率。",
+        }, points, liquidity_old.get(key, {}), start, end,
+           error or "MacroMicro OIS 无有效观测")
+
     ois_source = "CME Group SR3"
     ois_source_url = "https://www.cmegroup.com/markets/interest-rates/stirs/three-month-sofr.html"
     ois_note = "以经审核的 SR3 结算价推导 1Y1Y SOFR 远期代理；并非交易终端原始 OIS"
@@ -826,7 +872,7 @@ def main():
                    "tbill_events": tbill_events,
                    "methodology": {
                        "weekly_selection": "日度优先周五、其次周四；H.4.1 使用周三发布值",
-                       "ois": "CME SR3 推导的 1Y1Y SOFR 远期代理；无可验证结算源则待核验",
+                       "ois": "MacroMicro 展示即期起息 OIS 各期限；CME SR3 另行推导 1Y1Y SOFR 远期代理，两者不混用",
                        "repo": "定期占比 10 日变化≥2pp 为定期增多；否则清算占比变化绝对值≥5pp 为结构性分化；其余隔夜偏多",
                        "tbill": "近 14 个日历日净发行≥500 亿美元为强虹吸",
                    },

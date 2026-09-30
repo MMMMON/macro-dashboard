@@ -1,4 +1,4 @@
-"""Refresh only the SR3-derived 1Y1Y proxy before the slower full update."""
+"""Refresh OIS inputs and the SR3-derived 1Y1Y proxy before the slower full update."""
 from __future__ import annotations
 
 import json
@@ -13,7 +13,28 @@ def main():
     payload = json.loads(path.read_text(encoding="utf-8"))
     end = datetime.now(timezone.utc).date()
     start = end - timedelta(days=int(payload.get("history_days", 1095)))
-    old = payload.get("liquidity_pqg", {}).get("series", {}).get("ois_1y1y", {})
+    liquidity_series = payload.get("liquidity_pqg", {}).get("series", {})
+    changed = False
+    for series_key, (stat_id, tenor) in feed.MACROMICRO_OIS.items():
+        old_ois = liquidity_series.get(series_key, {})
+        try:
+            points = feed.fetch_macromicro_series(stat_id, start, end)
+        except Exception as exc:
+            print(f"MacroMicro OIS {tenor} unchanged ({type(exc).__name__})")
+            continue
+        updated_ois = feed.make_series({
+            "name": f"美国 OIS {tenor}", "symbol": f"MacroMicro {stat_id}", "unit": "%",
+            "frequency": "daily", "source": "MacroMicro",
+            "source_url": f"https://en.macromicro.me/series/{stat_id}",
+            "stale_business_days": 2,
+            "note": "即期起息 OIS 固定端利率；MacroMicro 授权接口。它不是 1Y1Y 远期利率。",
+        }, points, old_ois, start, end)
+        if updated_ois != old_ois:
+            liquidity_series[series_key] = updated_ois
+            changed = True
+            print(f"MacroMicro OIS {tenor} updated: {updated_ois['last_date']}")
+
+    old = liquidity_series.get("ois_1y1y", {})
 
     source = "CME Group SR3"
     source_url = "https://www.cmegroup.com/markets/interest-rates/stirs/three-month-sofr.html"
@@ -42,11 +63,14 @@ def main():
     }, points, old, start, series_end)
     if updated == old:
         print("SR3 proxy unchanged")
+    else:
+        liquidity_series["ois_1y1y"] = updated
+        changed = True
+        print(f"SR3 proxy updated: {updated['last_date']} {updated['data'][-1]['value']:.6f}")
+    if not changed:
         return
-    payload["liquidity_pqg"]["series"]["ois_1y1y"] = updated
     payload["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
-    print(f"SR3 proxy updated: {updated['last_date']} {updated['data'][-1]['value']:.6f}")
 
 
 if __name__ == "__main__":

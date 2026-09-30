@@ -73,6 +73,14 @@ const PANELS = [
     { id: 'g-repo', title: 'Repo 成交量与资金价格', unit: '量：万亿美元 / 价：%', lines: d => [{ name: 'Repo 总成交量', data: d.repoTotal, color: '#24756f', width: 3 }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', scale: 'left' }], what: 'OFR 三类 Repo 成交量与 SOFR 上下对齐，观察资金量和融资价格是否共同变化。', how: '价格上行同时伴随结构或成交异常，比单看价格更接近扩散证据。', mistake: '成交量上升可能只是正常融资需求，不等于缺钱。' },
   ]},
   { section: 'p', icon: '♨', title: 'P · 钱的价格', intro: '短端看水平与预期路径，长端看实际利率和期限溢价的变化。', panels: [
+    { id: 'p-ois', title: '美国 OIS 期限曲线（MacroMicro）', unit: '%', lines: () => [
+      { name: '1M', data: series('ois_1m'), color: '#8d281f' }, { name: '3M', data: series('ois_3m'), color: '#b45b31' },
+      { name: '6M', data: series('ois_6m'), color: '#c48a24' }, { name: '1Y', data: series('ois_1y'), color: '#24756f', width: 3 },
+      { name: '2Y', data: series('ois_2y'), color: '#315f8a', width: 3 }, { name: '10Y', data: series('ois_10y'), color: '#65508f' },
+      { name: '30Y', data: series('ois_30y'), color: '#776f67' }],
+      what: '隔夜指数掉期的固定端利率，按 1M、3M、6M、1Y、2Y、10Y、30Y 分列，反映市场对未来隔夜利率及期限补偿的定价。',
+      how: '先比较短端 1M—2Y 的斜率，再看它与 10Y、30Y 是否同向。每条图例都列出最新值和真实观测日期。',
+      mistake: '这些是即期起息期限，并不等于 1Y1Y 远期 OIS；曲线倒挂或变陡也不能单独证明流动性宽松或紧张。' },
     { id: 'p-short', title: '短端利率与预期路径', unit: '%', lines: () => [{ name: 'IORB', data: series('iorb'), color: '#776f67' }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', width: 3 }, { name: '1Y1Y SR3 代理', data: series('ois_1y1y'), color: '#315f8a' }], what: 'IORB 和 SOFR 是已实现短端；1Y1Y SR3 代理用于读取未来第 13—24 个月的预期中枢。', how: '预期路径与长端实际利率同向，P 的方向才更强。缺失时图表明确留空。', mistake: '降息动作或一天的期货跳动，不等于 P 已经转松。' },
     { id: 'p-real', title: '10Y 实际利率与 20 日变化', unit: '% / pct', lines: d => [{ name: '10Y 实际利率', data: series('tips_10y'), color: '#9d2933', width: 3 }, { name: '20 日变化', data: d.tips20, color: '#a97513', scale: 'left' }], what: '10Y TIPS 是长端实际贴现率；20 个交易日变化显示边际方向。', how: '水平决定约束底线，变化率决定边际压力。', mistake: '名义 10Y、CPI 或短端降息次数都不能替代实际利率。' },
     { id: 'p-curve', title: '收益率曲线、斜率与 10Y ACM 参考', unit: '% / bp', lines: d => [{ name: '2Y', data: series('dgs2'), color: '#9d2933' }, { name: '5Y', data: series('dgs5'), color: '#c26b70' }, { name: '10Y', data: series('dgs10'), color: '#315f8a', width: 3 }, { name: '30Y', data: series('dgs30'), color: '#19252e' }, { name: '2s10s', data: d.curve2s10s, color: '#24756f', scale: 'left' }, { name: '5s30s', data: d.curve5s30s, color: '#72a9a4', scale: 'left' }, { name: '10Y ACM 期限溢价', data: series('acm_10y'), color: '#a97513' }], what: '四个期限描述整条曲线；斜率用基点表示。10Y ACM 是模型估算的期限溢价参考。', how: '熊陡且期限溢价同步上升，才提示长端可能从增长定价切向财政供给定价。', mistake: '10Y ACM 不能冒充 30Y 期限溢价；财政主导仍需人工结合供给与通胀确认。' },

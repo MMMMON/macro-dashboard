@@ -98,6 +98,29 @@ class SnapshotTests(unittest.TestCase):
 
 
 class LiquidityPQGTests(unittest.TestCase):
+    def test_macromicro_requires_api_authorization(self):
+        with patch.dict('os.environ', {}, clear=True):
+            with self.assertRaisesRegex(RuntimeError, "MacroMicro API"):
+                feed.fetch_macromicro_series(43599, date(2026, 1, 1), date(2026, 2, 1))
+
+    def test_macromicro_parses_licensed_series(self):
+        class Response:
+            status_code = 200
+            @staticmethod
+            def json():
+                return {"stat_id": 43599, "series": [
+                    {"date": "2026-01-02", "val": "4.5"},
+                    {"date": "2026-02-01", "val": "9.9"},
+                ]}
+        class Session:
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+            def get(self, *args, **kwargs): return Response()
+        with patch.object(feed, 'http_session', return_value=Session()):
+            result = feed.fetch_macromicro_series(
+                43599, date(2026, 1, 1), date(2026, 2, 1), api_key="secret")
+        self.assertEqual(result, [{"time": "2026-01-02", "value": 4.5}])
+
     def test_q_score_keeps_template_reserve_change_and_shrink_adjustment(self):
         score, detail = feed.score_q(1, 3.3, .05, True)
         self.assertEqual(score, 47)

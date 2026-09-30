@@ -102752,7 +102752,7 @@
         "data": [
           {
             "time": "2026-09-30",
-            "value": 4.846652
+            "value": 4.827554
           }
         ]
       },
@@ -102914,6 +102914,146 @@
           {
             "time": "2026-08-31",
             "value": 0.762513
+          }
+        ]
+      },
+      "ois_1m": {
+        "name": "美国 OIS 1M",
+        "symbol": "MacroMicro 43596",
+        "unit": "%",
+        "frequency": "daily",
+        "source": "MacroMicro",
+        "source_url": "https://en.macromicro.me/series/43596",
+        "stale_business_days": 2,
+        "note": "即期起息 OIS 固定端利率；当前为公开页面核验快照，接通授权 API 后自动更新。它不是 1Y1Y 远期利率。",
+        "status": "cached",
+        "stale": true,
+        "last_date": "2026-09-22",
+        "message": "公开页面快照；等待 MacroMicro API 授权以恢复每日更新",
+        "data": [
+          {
+            "time": "2026-09-22",
+            "value": 3.9
+          }
+        ]
+      },
+      "ois_3m": {
+        "name": "美国 OIS 3M",
+        "symbol": "MacroMicro 43597",
+        "unit": "%",
+        "frequency": "daily",
+        "source": "MacroMicro",
+        "source_url": "https://en.macromicro.me/series/43597",
+        "stale_business_days": 2,
+        "note": "即期起息 OIS 固定端利率；当前为公开页面核验快照，接通授权 API 后自动更新。它不是 1Y1Y 远期利率。",
+        "status": "cached",
+        "stale": true,
+        "last_date": "2026-09-22",
+        "message": "公开页面快照；等待 MacroMicro API 授权以恢复每日更新",
+        "data": [
+          {
+            "time": "2026-09-22",
+            "value": 4.03
+          }
+        ]
+      },
+      "ois_6m": {
+        "name": "美国 OIS 6M",
+        "symbol": "MacroMicro 43598",
+        "unit": "%",
+        "frequency": "daily",
+        "source": "MacroMicro",
+        "source_url": "https://en.macromicro.me/series/43598",
+        "stale_business_days": 2,
+        "note": "即期起息 OIS 固定端利率；当前为公开页面核验快照，接通授权 API 后自动更新。它不是 1Y1Y 远期利率。",
+        "status": "cached",
+        "stale": true,
+        "last_date": "2026-09-22",
+        "message": "公开页面快照；等待 MacroMicro API 授权以恢复每日更新",
+        "data": [
+          {
+            "time": "2026-09-22",
+            "value": 4.21
+          }
+        ]
+      },
+      "ois_1y": {
+        "name": "美国 OIS 1Y",
+        "symbol": "MacroMicro 43599",
+        "unit": "%",
+        "frequency": "daily",
+        "source": "MacroMicro",
+        "source_url": "https://en.macromicro.me/series/43599",
+        "stale_business_days": 2,
+        "note": "即期起息 OIS 固定端利率；当前为公开页面核验快照，接通授权 API 后自动更新。它不是 1Y1Y 远期利率。",
+        "status": "cached",
+        "stale": true,
+        "last_date": "2026-09-22",
+        "message": "公开页面快照；等待 MacroMicro API 授权以恢复每日更新",
+        "data": [
+          {
+            "time": "2026-09-22",
+            "value": 4.5
+          }
+        ]
+      },
+      "ois_2y": {
+        "name": "美国 OIS 2Y",
+        "symbol": "MacroMicro 43600",
+        "unit": "%",
+        "frequency": "daily",
+        "source": "MacroMicro",
+        "source_url": "https://en.macromicro.me/series/43600",
+        "stale_business_days": 2,
+        "note": "即期起息 OIS 固定端利率；当前为公开页面核验快照，接通授权 API 后自动更新。它不是 1Y1Y 远期利率。",
+        "status": "cached",
+        "stale": true,
+        "last_date": "2026-09-22",
+        "message": "公开页面快照；等待 MacroMicro API 授权以恢复每日更新",
+        "data": [
+          {
+            "time": "2026-09-22",
+            "value": 4.63
+          }
+        ]
+      },
+      "ois_10y": {
+        "name": "美国 OIS 10Y",
+        "symbol": "MacroMicro 43603",
+        "unit": "%",
+        "frequency": "daily",
+        "source": "MacroMicro",
+        "source_url": "https://en.macromicro.me/series/43603",
+        "stale_business_days": 2,
+        "note": "即期起息 OIS 固定端利率；当前为公开页面核验快照，接通授权 API 后自动更新。它不是 1Y1Y 远期利率。",
+        "status": "cached",
+        "stale": true,
+        "last_date": "2026-09-22",
+        "message": "公开页面快照；等待 MacroMicro API 授权以恢复每日更新",
+        "data": [
+          {
+            "time": "2026-09-22",
+            "value": 4.57
+          }
+        ]
+      },
+      "ois_30y": {
+        "name": "美国 OIS 30Y",
+        "symbol": "MacroMicro 43605",
+        "unit": "%",
+        "frequency": "daily",
+        "source": "MacroMicro",
+        "source_url": "https://en.macromicro.me/series/43605",
+        "stale_business_days": 2,
+        "note": "即期起息 OIS 固定端利率；当前为公开页面核验快照，接通授权 API 后自动更新。它不是 1Y1Y 远期利率。",
+        "status": "cached",
+        "stale": true,
+        "last_date": "2026-09-22",
+        "message": "公开页面快照；等待 MacroMicro API 授权以恢复每日更新",
+        "data": [
+          {
+            "time": "2026-09-22",
+            "value": 4.62
           }
         ]
       }
@@ -119744,5 +119884,5 @@
       "tbill": "近 14 个日历日净发行≥500 亿美元为强虹吸"
     }
   },
-  "generated_at": "2026-09-30T06:01:46+00:00"
+  "generated_at": "2026-09-30T07:36:53+00:00"
 }
