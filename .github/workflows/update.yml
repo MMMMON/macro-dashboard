@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - fetch_data.py
+        - update_sr3_snapshot.py
       - requirements.txt
       - .github/workflows/update.yml
   schedule:
@@ -39,6 +40,20 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
+      - name: Refresh and publish SR3 proxy first
+        env:
+          CME_SR3_FORWARD_URL: ${{ secrets.CME_SR3_FORWARD_URL }}
+        run: |
+          set -euo pipefail
+          python -u update_sr3_snapshot.py
+          git add -- data.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "data: refresh SR3 forward proxy"
+          git push origin "HEAD:${{ github.event.repository.default_branch }}"
       - name: Fetch daily snapshot
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
