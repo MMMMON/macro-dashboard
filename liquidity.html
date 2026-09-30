@@ -4,7 +4,7 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f4f0e8">
   <meta name="description" content="付鹏 PQG 美元流动性看板：从资金数量、资金管道和资金价格读取传导链。"><title>付鹏 PQG · 美元流动性</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2319252e'/%3E%3Cpath d='M18 42c0-9 14-24 14-24s14 15 14 24a14 14 0 1 1-28 0z' fill='%2353a8a0'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="./assets/styles.css"><script defer src="./assets/lightweight-charts.js"></script><script defer src="./liquidity.js?v=20260930-4"></script>
+  <link rel="stylesheet" href="./assets/styles.css?v=20260930-5"><script defer src="./assets/lightweight-charts.js"></script><script defer src="./liquidity.js?v=20260930-4"></script>
 </head>
 <body class="pqg-page">
   <header class="site-header"><div class="mx-auto max-w-[1800px] px-4 sm:px-8 flex items-center justify-between gap-4">
@@ -14,6 +14,13 @@
   <main class="mx-auto max-w-[1800px] px-4 sm:px-8 pb-10">
     <section class="pqg-hero"><div><p class="eyebrow"><span class="status-dot"></span> USD LIQUIDITY / PQG TRANSMISSION</p><h1>先看结构，再看方向<span>。</span></h1><p class="intro-copy">钱有多少、流向哪里、成本怎样变化。沿着 Q 水量 → g 管道 → P 价格读，不跳步。</p></div><div class="update-info"><p id="pqg-update-status" role="status">正在读取最新数据…</p><p>工作日自动更新 · 各指标以真实观测日为准</p></div></section>
     <div class="concept-gate" role="note"><strong>先把撞字母拆开：</strong>本页小写 <b>g</b> 是资金分布与传导；权益“分子 × 分母 × G”里的大写 <b>G</b> 是制度与秩序，两者不是一回事。</div>
+    <figure class="framework-reference" aria-labelledby="framework-reference-title">
+      <div class="framework-reference-head"><div><p class="eyebrow">FRAMEWORK REFERENCE</p><h2 id="framework-reference-title">PQg 三相状态图</h2></div><p>用于理解 A／B／C／D／E／F／H 的相对位置；当前状态仍以页面下方的实时证据与条件判定为准。</p></div>
+      <a class="framework-reference-viewport" href="./assets/pqg-three-phase-reference.png" target="_blank" rel="noopener noreferrer" aria-label="打开 PQg 三相状态图原图">
+        <img src="./assets/pqg-three-phase-reference.png" width="1680" height="941" alt="PQg 三相状态图：以 P 钱的价格、Q 可用储备和 g 资金管道构成三角形，标出 A、B、C、D、E、F、H 七种状态及流动性观察顺序。">
+      </a>
+      <figcaption>参考图解释框架结构，不代表当前市场已经落入某一状态。点击图片可查看原图。</figcaption>
+    </figure>
     <div id="pqg-error" class="notice error" role="alert" hidden></div>
     <section class="pqg-toolbar" aria-label="看板控制"><div><span class="eyebrow">CURRENT EVIDENCE</span><h2>当前证据，不做强行归类</h2></div><div id="range-control" class="segmented" aria-label="图表时间范围"><button type="button" data-range="1M">1M</button><button type="button" data-range="3M">3M</button><button type="button" data-range="6M" aria-pressed="true">6M</button><button type="button" data-range="1Y">1Y</button><button type="button" data-range="ALL">全部</button></div></section>
     <section id="evidence-summary" class="evidence-summary" aria-label="P Q g 当前证据"></section>
