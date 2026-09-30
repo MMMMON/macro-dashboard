@@ -393,7 +393,7 @@ def derive_sr3_1y1y(contract_points, start: date, end: date):
 
 
 def fetch_yahoo_sr3_forward(start: date, end: date):
-    """Free fallback: derive 1Y1Y from delayed Yahoo Finance CME SR3 closes.
+    """Free fallback: derive 1Y1Y from delayed Yahoo Finance CME SR3 quotes.
 
     Yahoo removes some expired contracts, so this source backfills only the
     period supported by contracts that remain listed. Cached observations are
@@ -404,7 +404,7 @@ def fetch_yahoo_sr3_forward(start: date, end: date):
     # Yahoo exposes only the current daily bar for many individual SR3 symbols.
     # Request the five or six legs around today's 1Y1Y window, then retain each
     # derived observation in our own snapshot instead of probing expired symbols.
-    expected_day = end - timedelta(days=1)
+    expected_day = end
     target_start = (pd.Timestamp(expected_day) + pd.DateOffset(years=1)).date()
     target_end = (pd.Timestamp(expected_day) + pd.DateOffset(years=2)).date()
     for year in range(target_start.year - 1, target_end.year + 2):
@@ -417,35 +417,39 @@ def fetch_yahoo_sr3_forward(start: date, end: date):
             contracts.append((f"SR3{code}{year % 100:02d}.CME", reference_start, reference_end))
 
     period1 = int(datetime(start.year, start.month, start.day, tzinfo=timezone.utc).timestamp())
-    period2 = int(datetime(end.year, end.month, end.day, tzinfo=timezone.utc).timestamp())
+    quote_end = end + timedelta(days=1)
+    period2 = int(datetime(quote_end.year, quote_end.month, quote_end.day, tzinfo=timezone.utc).timestamp())
 
     def fetch_contract(item):
         symbol, reference_start, reference_end = item
-        with http_session() as session:
-            response = session.get(
-                f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
-                params={"period1": period1, "period2": period2, "interval": "1d", "events": "history"},
-                timeout=(10, 35),
-            )
-            if response.status_code != 200:
-                return reference_start, reference_end, []
-            chart = response.json().get("chart", {})
-            result = chart.get("result") or []
-            if not result:
-                return reference_start, reference_end, []
-            payload = result[0]
-            timestamps = payload.get("timestamp") or []
-            quotes = (payload.get("indicators", {}).get("quote") or [{}])[0]
-            closes = quotes.get("close") or []
-            rows = []
-            for timestamp, value in zip(timestamps, closes):
-                if value is not None and 0 < float(value) < 100:
-                    rows.append((datetime.fromtimestamp(timestamp, timezone.utc).date(), value))
-            return reference_start, reference_end, clean_points(rows, start, end)
+        try:
+            with http_session() as session:
+                response = session.get(
+                    f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}",
+                    params={"period1": period1, "period2": period2, "interval": "1d", "events": "history"},
+                    timeout=(10, 35),
+                )
+                if response.status_code != 200:
+                    return reference_start, reference_end, []
+                chart = response.json().get("chart", {})
+        except (requests.RequestException, ValueError, TypeError):
+            return reference_start, reference_end, []
+        result = chart.get("result") or []
+        if not result:
+            return reference_start, reference_end, []
+        payload = result[0]
+        timestamps = payload.get("timestamp") or []
+        quotes = (payload.get("indicators", {}).get("quote") or [{}])[0]
+        closes = quotes.get("close") or []
+        rows = []
+        for timestamp, value in zip(timestamps, closes):
+            if value is not None and 0 < float(value) < 100:
+                rows.append((datetime.fromtimestamp(timestamp, timezone.utc).date(), value))
+        return reference_start, reference_end, clean_points(rows, start, quote_end)
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         contract_points = list(pool.map(fetch_contract, contracts))
-    points = derive_sr3_1y1y(contract_points, start, end)
+    points = derive_sr3_1y1y(contract_points, start, quote_end)
     if not points:
         raise RuntimeError("Yahoo SR3 行情不足以覆盖完整 1Y1Y 窗口")
     return points
@@ -755,7 +759,7 @@ def main():
             ois_source_url = "https://finance.yahoo.com/"
             ois_incremental = True
             ois_note = (
-                "免费兜底：以 Yahoo Finance 提供的 CME SR3 日收盘价，按未来第 13—24 个月"
+                "免费兜底：以 Yahoo Finance 提供的 CME SR3 延迟行情，按未来第 13—24 个月"
                 "参考期重叠天数加权推导；属于行情代理，并非 CME 官方结算或原始 OIS。"
             )
         except Exception as yahoo_exc:
