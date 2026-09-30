@@ -41,10 +41,10 @@ function inferState(d) {
   const repoWindow = d.repoTotal.slice(-21); const repoBase = repoWindow.length > 1 ? repoWindow.slice(0, -1).reduce((sum, p) => sum + p.value, 0) / (repoWindow.length - 1) : null;
   const repoSignal = Number.isFinite(repoBase) && d.repoTotal.at(-1).value > repoBase * 1.1;
   const gState = !spreadNow ? 'unknown' : spreadDays >= 3 && ((srfNow?.value || 0) > 0 || repoSignal) ? 'tight' : spreadNow.value <= 0 && !(srfNow?.value > 0) ? 'clear' : 'watch';
-  const ois = series('ois_1y1y'); const tips = latest(d.tips20);
+  const ois = series('ois_1y1y'); const oisNow = latest(ois); const tips = latest(d.tips20);
   let pState = 'unknown';
   if (ois.length > 20 && tips) { const ois20 = ois.at(-1).value - ois.at(-21).value; pState = ois20 > .05 && tips.value > .05 ? 'tight' : ois20 < -.05 && tips.value < -.05 ? 'loose' : 'split'; }
-  return { q: qState, g: gState, p: pState, qPoint: q, spread: spreadNow, spreadDays, srf: srfNow, repoSignal, tips };
+  return { q: qState, g: gState, p: pState, qPoint: q, spread: spreadNow, spreadDays, srf: srfNow, repoSignal, tips, oisNow, oisCount: ois.length };
 }
 
 function statusLabel(state) { return ({ loose: '已观察到扩张', tight: '已观察到收紧', flat: '尚未观察到方向', clear: '尚未观察到管道压力', watch: '证据待确认', split: '短长端分歧', unknown: '数据不足' })[state] || '待确认'; }
@@ -52,12 +52,12 @@ function statusClass(state) { return ['loose', 'clear'].includes(state) ? 'posit
 
 function renderEvidence(d, state) {
   const specs = [
-    { key: 'p', icon: '♨', title: 'P · 钱的价格', note: state.p === 'unknown' ? '短端预期路径缺失，长端不能替代整条曲线。' : `10Y 实际利率 20 日变化 ${nf(state.tips?.value)} pct。`, next: '下一步：OIS 路径与 10Y 实际利率同向确认。' },
+    { key: 'p', icon: '♨', title: 'P · 钱的价格', status: state.oisNow && state.p === 'unknown' ? '已有读数，方向待确认' : null, note: state.oisNow ? `1Y1Y SOFR 远期代理 ${nf(state.oisNow.value, 3)}%（${state.oisNow.time}）；目前累计 ${state.oisCount} 个观测。` : '短端预期路径缺失，长端不能替代整条曲线。', next: state.oisNow && state.p === 'unknown' ? '下一步：累计至少 20 个交易日后，再与 10Y 实际利率判断方向。' : '下一步：OIS 路径与 10Y 实际利率同向确认。' },
     { key: 'q', icon: '◆', title: 'Q · 钱的数量', note: state.qPoint ? `准备金＋ON RRP 四周净变化 ${nf(state.qPoint.value, 3)} T。` : '共同日期不足，暂不计算合计变化。', next: '下一步：看二阶变化和 ON RRP 缓冲。' },
     { key: 'g', icon: '⌁', title: 'g · 资金管道', note: state.spread ? `SOFR−IORB ${nf(state.spread.value, 1)} bp；连续正值 ${state.spreadDays} 个观测。` : '同日 SOFR 与 IORB 数据不足。', next: '下一步：必须由工具响应或 Repo 量价扩散确认。' },
   ];
   const root = $('evidence-summary'); root.replaceChildren();
-  specs.forEach(spec => { const card = el('article', `evidence-card ${statusClass(state[spec.key])}`); card.append(el('span', 'factor-icon', spec.icon), el('h3', '', spec.title), el('strong', 'evidence-status', statusLabel(state[spec.key])), el('p', '', spec.note), el('small', '', spec.next)); root.append(card); });
+  specs.forEach(spec => { const card = el('article', `evidence-card ${statusClass(state[spec.key])}`); card.append(el('span', 'factor-icon', spec.icon), el('h3', '', spec.title), el('strong', 'evidence-status', spec.status || statusLabel(state[spec.key])), el('p', '', spec.note), el('small', '', spec.next)); root.append(card); });
 }
 
 const PANELS = [
@@ -90,7 +90,7 @@ function lastReading(panel, d) { const available = panel.lines(d).filter(line =>
 function renderDashboard(d) {
   const root = $('dashboard-sections'); root.replaceChildren(); chartViews.length = 0;
   PANELS.forEach(group => { const section = el('section', `factor-section factor-${group.section}`); const head = el('div', 'factor-heading'); head.append(el('span', 'factor-icon large', group.icon), el('div')); head.lastChild.append(el('p', 'eyebrow', `LAYER / ${group.section.toUpperCase()}`), el('h2', '', group.title), el('p', '', group.intro)); section.append(head);
-    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const item = el('span', '', line.name); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what), explanation('怎么看', panel.how), explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
+    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const point = latest(line.data); const item = el('span', '', point ? `${line.name} ${nf(point.value, panel.unit === '基点' ? 1 : 3)} · ${point.time}` : `${line.name} · 暂无数据`); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what), explanation('怎么看', panel.how), explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
   applyRange();
 }
 function explanation(label, value) { const p = el('p'); p.append(el('strong', '', `${label}：`), document.createTextNode(value)); return p; }
@@ -118,7 +118,7 @@ function renderChecklist(d, state) {
     ['01', 'ON RRP 缓冲', latest(series('on_rrp')), '余额需与实际月度抽水量比较；QT 为零时比例不适用。'],
     ['02', '准备金＋工具响应', state.srf, '回购投放从零星转持续，才说明压力进入工具层。'],
     ['03', 'SOFR−IORB', state.spread, `连续正值 ${state.spreadDays} 个观测；单日跳升不能确认。`],
-    ['04', '短端预期路径', latest(series('ois_1y1y')), '无可验证 SR3/OIS 数据时保持待确认。'],
+    ['04', '短端预期路径', latest(series('ois_1y1y')), '当前为 SR3 推导代理；累计至少 20 个交易日后再判断方向。'],
     ['05', '10Y 实际利率', latest(series('tips_10y')), state.tips ? `20 日变化 ${nf(state.tips.value)} pct。` : '20 日变化不足。'],
     ['06', '曲线＋期限溢价', latest(series('acm_10y')), '10Y ACM 仅参考；财政主导需人工确认。'],
     ['07', 'TGA＋发债结构', latest(series('tga')), 'TGA 有数据；Bill/Coupon 结构仍需结合财政看板人工判断。'],
