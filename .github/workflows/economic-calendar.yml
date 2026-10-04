@@ -8,9 +8,8 @@ on:
       - economic_calendar.json
       - .github/workflows/economic-calendar.yml
   schedule:
-    # Europe/Berlin Sunday 00:00 is Saturday 22:00 UTC in summer and
-    # Saturday 23:00 UTC in winter. The script validates local time.
-    - cron: '0 22,23 * * 6'
+    # Sunday 01:00 Asia/Shanghai is Saturday 17:00 UTC year-round.
+    - cron: '0 17 * * 6'
   workflow_dispatch:
 
 permissions:
@@ -34,7 +33,7 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: '3.12'
-      - name: Fetch the new week
+      - name: Fetch or revalidate the current week
         run: python -u fetch_economic_calendar.py ${{ github.event_name == 'schedule' && '--scheduled' || '' }}
       - name: Commit changed calendar and push
         env:

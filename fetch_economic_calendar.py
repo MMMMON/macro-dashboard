@@ -15,6 +15,7 @@ from zoneinfo import ZoneInfo
 FEED_URL = "https://nfs.faireconomy.media/ff_calendar_thisweek.json"
 OUTPUT = Path(__file__).with_name("economic_calendar.json")
 BERLIN = ZoneInfo("Europe/Berlin")
+SHANGHAI = ZoneInfo("Asia/Shanghai")
 ALLOWED = {"USD", "EUR", "GBP", "AUD", "JPY", "CHF", "NZD", "CNY"}
 IMPORTANT = re.compile(
     r"pmi|cpi|inflation|policy rate|rate statement|rate decision|employment|"
@@ -160,7 +161,9 @@ def should_keep(title: str, impact: str) -> bool:
 
 def target_week(now: datetime) -> tuple[datetime, datetime]:
     local = now.astimezone(BERLIN)
-    days_to_monday = 1 if local.weekday() == 6 else -local.weekday()
+    china = now.astimezone(SHANGHAI)
+    switch_to_next_week = local.weekday() == 6 or china.weekday() == 6
+    days_to_monday = 7 - local.weekday() if switch_to_next_week else -local.weekday()
     monday = (local + timedelta(days=days_to_monday)).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
@@ -239,9 +242,9 @@ def main() -> None:
     parser.add_argument("--scheduled", action="store_true")
     args = parser.parse_args()
     now = datetime.now(timezone.utc)
-    local = now.astimezone(BERLIN)
-    if args.scheduled and not (local.weekday() == 6 and local.hour in {0, 1}):
-        print(f"Outside Sunday 00:00/01:00 Berlin window: {local.isoformat()}")
+    china = now.astimezone(SHANGHAI)
+    if args.scheduled and not (china.weekday() == 6 and china.hour == 1):
+        print(f"Outside Sunday 01:00 Asia/Shanghai window: {china.isoformat()}")
         return
     try:
         data = normalize(fetch_feed(), now)
