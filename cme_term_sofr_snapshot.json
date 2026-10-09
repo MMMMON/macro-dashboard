@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-08",
+  "captured_at": "2026-10-09T12:44:52Z",
+  "source": "CME Group public Term SOFR webpage",
+  "source_url": "https://www.cmegroup.com/market-data/cme-group-benchmark-administration/term-sofr.html",
+  "values": {
+    "1m": 3.92327,
+    "3m": 4.03656,
+    "6m": 4.18994,
+    "12m": 4.47214
+  },
+  "usage": "view_only_reference",
+  "note": "人工网页快照，仅供核对；不写入历史序列，不参与路径中枢或第一层条件判定。"
+}
