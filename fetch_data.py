@@ -49,6 +49,7 @@ FRED = {
     "kw10y": ("THREEFYTP10", "Kim-Wright 10Y 期限溢价"),
 }
 CLEVELAND_EXPECTATIONS_URL = "https://www.clevelandfed.org/-/media/files/webcharts/inflationexpectations/inflation-expectations.xlsx"
+KW_OFFICIAL_URL = "https://www.federalreserve.gov/data/yield-curve-tables/feds200533.csv"
 LIQUIDITY_FRED = {
     "on_rrp": ("RRPONTSYD", "ON RRP", "T", 1 / 1000),
     "reserves": ("WRESBAL", "准备金", "T", 1 / 1_000_000),
@@ -156,6 +157,21 @@ def fetch_cleveland_expectations(start: date, end: date):
     for key, column in columns.items():
         result[key] = clean_points(zip(frame["Model Output Date"], frame[column]), start, end)
     return result
+
+
+def fetch_kw_official(start: date, end: date):
+    """Federal Reserve Board's official Kim-Wright model CSV fallback."""
+    with http_session() as session:
+        response = session.get(KW_OFFICIAL_URL, timeout=(10, 60))
+        if response.status_code != 200:
+            raise RuntimeError(f"Federal Reserve Board KW CSV HTTP {response.status_code}")
+    lines = response.content.decode("utf-8-sig").splitlines()
+    header = next((i for i, line in enumerate(lines) if line.startswith("Date,")), None)
+    if header is None:
+        raise RuntimeError("Federal Reserve Board KW CSV header missing")
+    reader = csv.DictReader(lines[header:])
+    rows = [(row.get("Date"), row.get("THREEFYTP1000.B")) for row in reader]
+    return clean_points(rows, start, end)
 
 
 def build_rate_atlas(series, cleveland, old_rate_atlas, start, end):
@@ -878,6 +894,14 @@ def main():
                     print(f"::warning::Treasury fallback failed ({type(exc).__name__})")
             points = treasury.get(key, [])
             from_treasury = bool(points)
+        from_kw_official = False
+        if key == "kw10y" and not points:
+            try:
+                points = fetch_kw_official(start, end)
+                from_kw_official = bool(points)
+                error = None
+            except Exception as exc:
+                error = f"Kim-Wright 官方数据暂不可用（{type(exc).__name__}）"
         meta = {"name": name, "symbol": symbol, "unit": "%", "frequency": "daily",
                 "source": "FRED", "source_url": f"https://fred.stlouisfed.org/series/{symbol}",
                 "note": "工作日发布；收益率单位为百分比"}
@@ -886,6 +910,10 @@ def main():
                         symbol={"us10y": "BC_10YEAR", "real10y": "TC_10YEAR", "breakeven10y": "BC_10YEAR - TC_10YEAR"}[key],
                         note="财政部 10Y 名义减实际收益率，仅取共同日期；非直接下载 FRED T10YIE" if key == "breakeven10y"
                         else "美国财政部官方日度 10Y 收益率，单位为百分比")
+        elif from_kw_official:
+            meta.update(source="Federal Reserve Board", source_url=KW_OFFICIAL_URL,
+                        symbol="THREEFYTP1000.B",
+                        note="Kim-Wright 三因子无套利期限结构模型；官方日频模型估计，可能修订")
         series[key] = make_series(meta, points, old.get(key, {}), start, end, error or "FRED 无有效观测")
 
     print("Fetching Cleveland Fed inflation expectations...", flush=True)
