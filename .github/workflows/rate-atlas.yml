@@ -1,0 +1,53 @@
+name: Update Rate Atlas
+
+on:
+  schedule:
+    - cron: '15 0 * * 1-5'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - fetch_data.py
+      - requirements.txt
+      - .github/workflows/rate-atlas.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: macro-data-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - name: Refresh Rate Atlas inputs and calculations
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python -u fetch_data.py --skip-yahoo --rates-only
+      - name: Save snapshot
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          git add -- data.json
+          if git diff --cached --quiet; then
+            echo "No Rate Atlas changes."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m "data: refresh Rate Atlas"
+          git pull --rebase origin "$DEFAULT_BRANCH"
+          git push origin "HEAD:$DEFAULT_BRANCH"

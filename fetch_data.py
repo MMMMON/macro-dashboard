@@ -46,7 +46,9 @@ FRED = {
     "us10y": ("DGS10", "美国 10Y 国债收益率"),
     "real10y": ("DFII10", "美国 10Y 实际利率"),
     "breakeven10y": ("T10YIE", "美国 10Y 盈亏平衡通胀率"),
+    "kw10y": ("THREEFYTP10", "Kim-Wright 10Y 期限溢价"),
 }
+CLEVELAND_EXPECTATIONS_URL = "https://www.clevelandfed.org/-/media/files/webcharts/inflationexpectations/inflation-expectations.xlsx"
 LIQUIDITY_FRED = {
     "on_rrp": ("RRPONTSYD", "ON RRP", "T", 1 / 1000),
     "reserves": ("WRESBAL", "准备金", "T", 1 / 1_000_000),
@@ -136,6 +138,87 @@ def fetch_fred_series(series_id: str, start: date, end: date, api_key=None):
             reader = csv.DictReader(io.StringIO(response.text))
             rows = [(r.get("observation_date", r.get("DATE")), r.get(series_id)) for r in reader]
     return clean_points(rows, start, end)
+
+
+def fetch_cleveland_expectations(start: date, end: date):
+    """Official monthly Cleveland Fed 10Y expectation and risk-premia model output."""
+    with http_session() as session:
+        response = session.get(CLEVELAND_EXPECTATIONS_URL, timeout=(10, 60))
+        if response.status_code != 200:
+            raise RuntimeError(f"Cleveland Fed XLSX HTTP {response.status_code}")
+    frame = pd.read_excel(io.BytesIO(response.content), sheet_name="Ten-year Expected Chart")
+    columns = {
+        "expected_inflation": "10 year Expected Inflation",
+        "real_risk_premium_control": "Real Risk Premium",
+        "inflation_risk_premium_control": "Inflation Risk Premium",
+    }
+    result = {}
+    for key, column in columns.items():
+        result[key] = clean_points(zip(frame["Model Output Date"], frame[column]), start, end)
+    return result
+
+
+def build_rate_atlas(series, cleveland, old_rate_atlas, start, end):
+    """Build transparent daily estimates using a monthly Cleveland step anchor."""
+    source_keys = ["us10y", "real10y", "breakeven10y", "kw10y"]
+    raw = {key: {p["time"]: p["value"] for p in series.get(key, {}).get("data", [])}
+           for key in source_keys}
+    anchors = cleveland.get("expected_inflation", [])
+    if not anchors:
+        return old_rate_atlas or {"state": "unavailable", "errors": ["Cleveland 10Y 预期通胀无有效观测"]}
+    anchor_days = [(p["time"], p["value"]) for p in anchors]
+    last_values, last_days = {}, {}
+    rows = []
+    for day in sorted(set().union(*(set(values) for values in raw.values()))):
+        if not (start.isoformat() <= day < end.isoformat()):
+            continue
+        carried = []
+        for key in source_keys:
+            if day in raw[key]:
+                last_values[key], last_days[key] = raw[key][day], day
+            elif key in last_values:
+                carried.append(key)
+        eligible = [(d, v) for d, v in anchor_days if d <= day]
+        if len(last_values) != len(source_keys) or not eligible:
+            continue
+        anchor_day, expected_inflation = eligible[-1]
+        nominal, real, bei, kw = (last_values[k] for k in source_keys)
+        irp = bei - expected_inflation
+        expected_real = nominal - kw - expected_inflation
+        rate_risk = real - expected_real
+        residual = rate_risk + irp - kw
+        bei_gap = (nominal - real) - bei
+        rows.append({
+            "time": day, "nominal": round(nominal, 6), "real": round(real, 6),
+            "bei": round(bei, 6), "kw": round(kw, 6),
+            "expected_inflation": round(expected_inflation, 6), "anchor_date": anchor_day,
+            "inflation_risk_premium": round(irp, 6),
+            "expected_real_rate": round(expected_real, 6),
+            "rate_risk_premium": round(rate_risk, 6),
+            "residual": round(residual, 6), "bei_gap": round(bei_gap, 6),
+            "carried": carried,
+        })
+    if not rows:
+        return old_rate_atlas or {"state": "unavailable", "errors": ["利率序列无法对齐"]}
+    latest = rows[-1]
+    controls = {}
+    for key in ["real_risk_premium_control", "inflation_risk_premium_control"]:
+        controls[key] = cleveland.get(key, [])
+    return {
+        "state": "success", "as_of": latest["time"], "frequency": "daily with monthly step anchor",
+        "anchor": {"name": "Cleveland Fed 10Y expected inflation", "frequency": "monthly",
+                   "last_date": latest["anchor_date"], "value": latest["expected_inflation"],
+                   "method": "最近一期月值前向延续，到下一次 CPI 发布日阶梯跳变"},
+        "series": rows, "cleveland_controls": controls,
+        "checks": {"bei_tolerance_bp": 2, "residual_tolerance_bp": 2,
+                   "latest_bei_gap_bp": round(latest["bei_gap"] * 100, 3),
+                   "latest_residual_bp": round(latest["residual"] * 100, 3)},
+        "sources": {
+            "nominal": "FRED DGS10", "real": "FRED DFII10", "bei": "FRED T10YIE",
+            "term_premium": "FRED THREEFYTP10 (Kim-Wright)",
+            "inflation_expectation": "Federal Reserve Bank of Cleveland monthly model output",
+        },
+    }
 
 
 def fetch_macromicro_series(stat_id: int, start: date, end: date, api_key=None):
@@ -738,6 +821,7 @@ def main():
     parser.add_argument("--previous", type=Path, help="read the prior snapshot from a separate path before writing output")
     parser.add_argument("--days", type=int, default=1095)
     parser.add_argument("--skip-yahoo", action="store_true", help="keep the prior Yahoo series while refreshing non-Yahoo sources")
+    parser.add_argument("--rates-only", action="store_true", help="refresh only the Rate Atlas inputs and preserve other sections")
     args = parser.parse_args()
     if args.days < 30:
         parser.error("--days must be at least 30")
@@ -803,6 +887,24 @@ def main():
                         note="财政部 10Y 名义减实际收益率，仅取共同日期；非直接下载 FRED T10YIE" if key == "breakeven10y"
                         else "美国财政部官方日度 10Y 收益率，单位为百分比")
         series[key] = make_series(meta, points, old.get(key, {}), start, end, error or "FRED 无有效观测")
+
+    print("Fetching Cleveland Fed inflation expectations...", flush=True)
+    try:
+        cleveland, cleveland_error = fetch_cleveland_expectations(start, end), None
+    except Exception as exc:
+        cleveland, cleveland_error = {}, f"Cleveland Fed 暂不可用（{type(exc).__name__}）"
+        print(f"::warning::{cleveland_error}")
+    rate_series = {**old, **series}
+    rate_atlas = build_rate_atlas(
+        rate_series, cleveland, previous.get("rate_atlas", {}), start, end)
+    if cleveland_error and rate_atlas:
+        rate_atlas.setdefault("errors", []).append(cleveland_error)
+    if args.rates_only:
+        payload = {**previous, "series": rate_series, "rate_atlas": rate_atlas}
+        changed = write_snapshot(args.output, payload, previous)
+        print(f"Rate Atlas snapshot {'updated' if changed else 'unchanged'}")
+        return
+
     print("Fetching ChinaBond sovereign curve...", flush=True)
     try:
         points, error = fetch_china10y(start, end), None
@@ -956,6 +1058,7 @@ def main():
     payload = {"schema_version": 2, "history_days": args.days,
                "price_basis": "Yahoo adjusted daily close; no forward fill; current UTC day excluded",
                "series": series,
+               "rate_atlas": rate_atlas,
                "liquidity_pqg": {
                    "as_of": liquidity_weeks[-1]["as_of"] if liquidity_weeks else None,
                    "weeks": liquidity_weeks, "series": liquidity_series, "repo_series": repo_series,
