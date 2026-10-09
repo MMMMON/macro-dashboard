@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: macro-data-update
+  group: rate-atlas-update
   cancel-in-progress: false
 
 jobs:
