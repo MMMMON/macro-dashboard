@@ -1,4 +1,4 @@
-"""Refresh OIS inputs and the SR3-derived 1Y1Y proxy before the slower full update."""
+"""Refresh licensed OIS and Term SOFR inputs plus the SR3 proxy before the full update."""
 from __future__ import annotations
 
 import json
@@ -105,3 +105,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
