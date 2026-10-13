@@ -27,6 +27,8 @@ YAHOO = {
     "eth": ("ETH-USD", "Ethereum", "USD"),
     "oil": ("CL=F", "WTI 原油期货", "USD/桶"),
     "sp500": ("^GSPC", "标普 500", "点"),
+    "qqq": ("QQQ", "纳斯达克 100 ETF (QQQ)", "USD"),
+    "soxx": ("SOXX", "半导体 ETF (SOXX)", "USD"),
     "gold": ("GC=F", "COMEX 黄金期货", "USD/盎司"),
     "dxy": ("DX-Y.NYB", "美元指数 DXY", "点"),
     "aapl": ("AAPL", "Apple", "USD"),
