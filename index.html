@@ -7,6 +7,7 @@
   <meta name="description" content="每日更新的全球宏观市场看板：数字资产、国债、股市、黄金、美元与通胀预期。">
   <title>Macro Atlas · 全球宏观看板</title>
   <link rel="stylesheet" href="./assets/styles.css">
+  <style>.dashboard-actions{display:flex;align-items:center;gap:8px}.dashboard-action{border:1px solid var(--border);border-radius:4px;padding:7px 10px;color:#625d57;background:var(--paper);font-size:11px;line-height:1.2;text-decoration:none;cursor:pointer;white-space:nowrap}.dashboard-action:hover{border-color:#a99d91;color:var(--accent)}.dashboard-action:disabled{opacity:.55;cursor:wait}@media(max-width:640px){.dashboard-actions{gap:5px}.dashboard-action{padding:6px 7px}}</style>
   <script defer src="./assets/lightweight-charts.js"></script>
   <script defer src="./main.js"></script>
 </head>
@@ -14,7 +15,7 @@
   <header class="site-header">
     <div class="mx-auto max-w-[1800px] px-4 sm:px-8 flex items-center justify-between gap-4">
       <a class="brand" href="./" aria-label="Macro Atlas 首页"><span class="brand-mark">M<span>∕</span></span> MACRO ATLAS <span class="brand-divider">/</span><span class="brand-sub">宏观观察站</span></a>
-      <div class="header-links"><a class="method-link" href="./liquidity.html">美元流动性 PQG <span>↗</span></a><a class="method-link" href="#methodology">数据口径 <span>↗</span></a></div>
+      <div class="header-links" style="flex-wrap:wrap;justify-content:flex-end"><a class="method-link" href="./liquidity.html">美元流动性 PQG <span>↗</span></a><a class="method-link" href="#methodology">数据口径 <span>↗</span></a><div class="dashboard-actions"><button class="dashboard-action" type="button" data-refresh-task="macro">↻ 抓取最新数据</button><a class="dashboard-action" href="https://macro-dashboard-hub.pages.dev/">⌂ 返回主界面</a></div></div>
     </div>
   </header>
   <main class="mx-auto max-w-[1800px] px-4 sm:px-8 pb-10">
@@ -44,5 +45,6 @@
     <footer class="flex flex-col sm:flex-row justify-between gap-3"><span>MACRO ATLAS <span class="footer-muted">/ 全球宏观观察站</span></span><span>Charts by <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer">TradingView Lightweight Charts™ ↗</a></span></footer>
   </main>
   <noscript>此看板需要启用 JavaScript 才能显示图表。</noscript>
+  <script src="https://macro-dashboard-hub.pages.dev/manual-refresh.js"></script>
 </body>
 </html>

@@ -52,6 +52,11 @@ def main():
         except Exception as exc:
             print(f"MacroMicro OIS {tenor} unchanged ({type(exc).__name__})")
             continue
+        if points and old_ois.get("data"):
+            points = feed.clean_points(
+                [(p["time"], p["value"]) for p in old_ois["data"] + points],
+                feed.MACROMICRO_OIS_START, end,
+            )
         updated_ois = feed.make_series({
             "name": f"美国 OIS {tenor}", "symbol": f"MacroMicro {stat_id}", "unit": "%",
             "frequency": "daily", "source": "MacroMicro",

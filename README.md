@@ -70,7 +70,7 @@ Windows 若虚拟环境路径包含中文，curl 可能无法读取 CA 文件；
 
 ### 每日更新时间
 
-`cron: '0 21 * * 1-5'` = 工作日 UTC 21:00。首次上传和修改抓取脚本、依赖或工作流时也会触发一次更新（push 规则默认使用 main；如改名请同步修改）。GitHub 定时任务可能延迟；这不是实时行情系统。公开仓库连续 60 天无活动时，GitHub 可能停用定时任务，需在 Actions 中重新启用。
+统一调度器在北京时间每天 08:00（UTC 00:00）通过 `workflow_dispatch` 启动更新，并在 5 分钟、20 分钟后检查完成状态或补试。首次上传和修改抓取脚本、依赖或工作流时仍会触发一次更新（push 规则默认使用 main；如改名请同步修改）。这不是实时行情系统，各指标继续保留自己的真实观测日期。
 
 `data.json` 有变化才提交；仅运行时间变化不会制造提交。Cloudflare Git 集成监听仓库提交并自动部署。`GITHUB_TOKEN` 推送不会触发另一个 GitHub Actions push 工作流，因此本项目不依赖第二个 push 部署工作流，而由 Cloudflare Git 集成执行构建。
 
@@ -97,7 +97,7 @@ Yahoo 显式使用 `auto_adjust=True` 的复权收盘价。M7 展示七条独立
 
 `/liquidity.html` 按 Q（水量）→ g（资金管道）→ P（资金价格）的传导顺序展示证据，并在每张图右侧常驻“是什么、怎么看、本次变化、不能据此认定什么”。页面不再用单一加权总分替代判断，而是把 A／B／C／D／E／F／H 七种组合的支持、冲突和待补证据并列展示。
 
-Q 使用准备金、ON RRP、TGA 与 Fed 总资产；g 使用 SOFR−IORB、Fed 临时回购余额（SRF 工具响应代理）和 OFR Repo 量价；P 使用短端实现利率、可验证时的 SR3 远期代理、10Y 实际利率、2Y／5Y／10Y／30Y 曲线及纽约联储 10Y ACM 期限溢价参考。10Y ACM 明确不冒充 30Y 期限溢价。日频保持日频，H.4.1 保持周频，派生合计只使用共同观测日期且不前向填充。
+Q 使用准备金、ON RRP、TGA 与 Fed 总资产，并单列 IORB、ON RRP 奖励利率和贴现窗口主要信贷利率的操作走廊；利率走廊用于说明工具对手方和政策传导，不计入 Q 的数量加总。g 使用 SOFR−IORB、Fed 临时回购余额（SRF 工具响应代理）和 OFR Repo 量价；P 使用短端实现利率、可验证时的 SR3 远期代理、10Y 实际利率、2Y／5Y／10Y／30Y 曲线及纽约联储 10Y ACM 期限溢价参考。10Y ACM 明确不冒充 30Y 期限溢价。日频保持日频，H.4.1 保持周频，派生合计只使用共同观测日期且不前向填充。
 
 免费官方来源优先。`FINANCIAL_DATASETS_API_KEY` 不写入源码或网页；当前接口并不提供完整 OIS 路径或 30Y 期限溢价，因此本项目不会为这两个缺项调用付费 API。缺失、缓存和延迟均在页面公开显示，相关结论降级为待确认。
 
@@ -109,7 +109,7 @@ CME 历史结算接口需要相应许可。若仓库 secret `CME_SR3_FORWARD_URL
 
 直接 OIS 不足时，可用 CME 官方 Term SOFR 作为短端路径代理。配置仓库 secrets `CME_TERM_SOFR_API_ID` 与 `CME_TERM_SOFR_API_PASSWORD` 后，更新器通过 OAuth 获取 1M、3M、6M、12M 从 2020/2021 年起的完整日度历史，只增量补最近日期。看板明确将其标为代理；直接 OIS 数据新鲜且达到 21 个共同观测时自动优先使用直接 OIS。
 
-### FRED API
+### FRED API 接口
 
 `fetch_fred_series(series_id, start, end, api_key=None)` 已完整实现官方 API 接口：
 

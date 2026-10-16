@@ -23,6 +23,46 @@ class SnapshotTests(unittest.TestCase):
         ], self.start, self.end)
         self.assertEqual(points, [{"time": "2026-01-28", "value": 1.0}, {"time": "2026-01-30", "value": 3.0}])
 
+    def test_macromicro_csv_incrementally_merges_and_removes_proxy_curve(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            csv_path, data_path = root / "ois.csv", root / "data.json"
+            csv_path.write_text(
+                "date,1M,3M,6M,1Y,2Y,10Y,30Y\n"
+                "2026-01-06,3.68,3.65,3.59,3.44,3.31,3.80,4.18\n",
+                encoding="utf-8",
+            )
+            series = {key: {"data": [{"time": "2026-01-05", "value": 3.5}]}
+                      for key in feed.MACROMICRO_OIS}
+            series["cms_ois_1y"] = {"data": [{"time": "2026-01-05", "value": 3.4}]}
+            data_path.write_text(json.dumps({"liquidity_pqg": {"series": series}}), encoding="utf-8")
+            with patch("sys.argv", ["import_macromicro_ois.py", str(csv_path),
+                                     "--data-json", str(data_path)]):
+                ois_import.main()
+            updated = json.loads(data_path.read_text(encoding="utf-8"))["liquidity_pqg"]["series"]
+            self.assertEqual([p["time"] for p in updated["ois_1m"]["data"]],
+                             ["2026-01-05", "2026-01-06"])
+            self.assertNotIn("cms_ois_1y", updated)
+            self.assertEqual(updated["ois_1m"]["source"], "MacroMicro（账户授权 CSV）")
+
+    def test_macromicro_csv_rejects_misaligned_tenors_without_writing(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            csv_path, data_path = root / "ois.csv", root / "data.json"
+            csv_path.write_text(
+                "date,1M,3M,6M,1Y,2Y,10Y,30Y\n"
+                "2026-01-05,3.68,3.65,3.59,3.44,3.31,3.80,4.18\n"
+                "2026-01-06,3.69,3.66,3.60,3.45,3.32,3.81,\n",
+                encoding="utf-8",
+            )
+            original = json.dumps({"liquidity_pqg": {"series": {}}})
+            data_path.write_text(original, encoding="utf-8")
+            with patch("sys.argv", ["import_macromicro_ois.py", str(csv_path),
+                                     "--data-json", str(data_path)]):
+                with self.assertRaisesRegex(ValueError, "观测日期不一致"):
+                    ois_import.main()
+            self.assertEqual(data_path.read_text(encoding="utf-8"), original)
+
     def test_outage_preserves_values(self):
         result = feed.make_series(self.meta, [], {"data": self.points}, self.start, self.end, "outage")
         self.assertEqual(result["data"], self.points)

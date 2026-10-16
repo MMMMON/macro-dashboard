@@ -63,17 +63,25 @@ def main():
     payload = json.loads(args.data_json.read_text(encoding="utf-8"))
     series = payload["liquidity_pqg"]["series"]
     end = datetime.now(timezone.utc).date() + timedelta(days=1)
+    imported = {}
     for key, (stat_id, tenor) in feed.MACROMICRO_OIS.items():
-        points = feed.clean_points(rows[key], feed.MACROMICRO_OIS_START, end)
+        old_points = [(p.get("time"), p.get("value")) for p in series.get(key, {}).get("data", [])]
+        points = feed.clean_points(old_points + rows[key], feed.MACROMICRO_OIS_START, end)
         if not points:
             raise ValueError(f"CSV 的 {tenor} 列没有有效数据")
-        series[key] = feed.make_series({
+        imported[key] = feed.make_series({
             "name": f"美国 OIS {tenor}", "symbol": f"MacroMicro {stat_id}", "unit": "%",
             "frequency": "daily", "source": "MacroMicro（账户授权 CSV）",
-            "source_url": f"https://en.macromicro.me/series/{stat_id}",
+            "source_url": "https://sc.macromicro.me/charts/115044/us-overnight-indexed-swaps",
             "stale_business_days": 2,
-            "note": "由账户授权导出的 MacroMicro 历史 CSV 导入；即期起息 OIS，不是 1Y1Y 远期利率。",
+            "note": "由用户提供的 MacroMicro 账户授权 CSV 导入并按日期增量合并；即期起息 OIS，不是 1Y1Y 远期利率。",
         }, points, {}, feed.MACROMICRO_OIS_START, end)
+    date_sets = [{p["time"] for p in imported[key]["data"]} for key in feed.MACROMICRO_OIS]
+    if any(days != date_sets[0] for days in date_sets[1:]):
+        raise ValueError("CSV 合并后七个期限的观测日期不一致，已停止写入")
+    series.update(imported)
+    for key in [key for key in series if key.startswith("cms_ois_")]:
+        del series[key]
     payload["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     args.data_json.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
@@ -81,7 +89,7 @@ def main():
     )
     first_dates = [series[key]["data"][0]["time"] for key in feed.MACROMICRO_OIS]
     last_dates = [series[key]["last_date"] for key in feed.MACROMICRO_OIS]
-    print(f"Imported MacroMicro OIS history: {min(first_dates)} → {max(last_dates)}")
+    print(f"Imported MacroMicro OIS history: {min(first_dates)} → {max(last_dates)} ({len(date_sets[0])} dates)")
 
 
 if __name__ == "__main__":

@@ -61,16 +61,27 @@ with sync_playwright() as p:
     page.goto((live_url.rstrip('/') + '/liquidity.html') if live_url else 'http://macro-dashboard.test/liquidity.html', wait_until='networkidle')
     expect(page.locator('#pqg-update-status')).to_contain_text('快照生成')
     assert page.locator('.factor-section').count() == 3
-    assert page.locator('.explain-panel').count() == 10
-    assert page.locator('.explain-plot canvas').count() >= 10
-    assert page.locator('.chart-explainer').count() == 10
+    liquidity_panel_count = page.locator('.explain-panel').count()
+    assert liquidity_panel_count == 13, {"panels": liquidity_panel_count, "errors": errors}
+    assert page.locator('.explain-plot canvas').count() >= 13
+    assert page.locator('.chart-explainer').count() == 13
+    ois_panel = page.locator('.explain-panel').filter(has_text='美国 OIS 历史期限曲线 · MacroMicro')
+    expect(ois_panel.locator('.ois-history-status')).to_contain_text('历史覆盖')
+    assert '1Y' in ois_panel.locator('.panel-legend').inner_text()
+    assert '30Y' in ois_panel.locator('.panel-legend').inner_text()
+    page.wait_for_timeout(400)
+    ois_panel.screenshot(path=str(artifacts / 'ois-history-desktop.png'))
     assert page.locator('.combo-card').count() == 7
     assert page.locator('.check-item').count() == 8
     assert page.locator('.concept-gate').inner_text().find('不是一回事') >= 0
-    assert '数据不足' in page.locator('.evidence-card').first.inner_text()
+    assert page.locator('.evidence-card').count() == 3
     buffer_panel = page.locator('.explain-panel').filter(has_text='ON RRP 缓冲与实际缩表代理')
     assert '海绵判定' in buffer_panel.locator('.chart-explainer').inner_text()
     assert '海绵差值：ON RRP − 四周实际下降' in buffer_panel.locator('.panel-legend').inner_text()
+    corridor_panel = page.locator('.explain-panel').filter(has_text='联储操作利率走廊')
+    assert corridor_panel.locator('.corridor-row').count() == 3
+    assert 'ON RRP 利率' in corridor_panel.locator('.panel-legend').inner_text()
+    assert '贴现率（主要信贷）' in corridor_panel.locator('.panel-legend').inner_text()
     for label in ['1M', '3M', '6M', '1Y', 'ALL']:
         page.locator(f'#range-control button[data-range="{label}"]').click()
     page.screenshot(path=str(artifacts / 'liquidity-desktop.png'), full_page=True)

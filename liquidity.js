@@ -1,10 +1,12 @@
 'use strict';
 
+window.__LIQUIDITY_RUNTIME_READY__ = true;
+
 const $ = id => document.getElementById(id);
 const nf = (value, digits = 2) => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value) : '—';
 const COLORS = { q: '#315f8a', g: '#24756f', p: '#9d2933', gold: '#a97513', gray: '#776f67', ink: '#25211d' };
 const RANGE_DAYS = { '1M': 31, '3M': 93, '6M': 186, '1Y': 366, ALL: Infinity };
-let liquidity; let cmeWebSnapshot = null; let oisWebSnapshot = null; let currentRange = '6M'; const chartViews = [];
+let liquidity; let currentRange = '6M'; const chartViews = [];
 
 function el(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
 function validSeries(item) { return Array.isArray(item?.data) ? item.data.filter(p => /^\d{4}-\d{2}-\d{2}$/.test(p.time) && Number.isFinite(p.value)) : []; }
@@ -58,14 +60,54 @@ function inferState(d) {
   const repoWindow = d.repoTotal.slice(-21); const repoBase = repoWindow.length > 1 ? repoWindow.slice(0, -1).reduce((sum, p) => sum + p.value, 0) / (repoWindow.length - 1) : null;
   const repoSignal = Number.isFinite(repoBase) && d.repoTotal.at(-1).value > repoBase * 1.1;
   const gState = !spreadNow ? 'unknown' : spreadDays >= 3 && ((srfNow?.value || 0) > 0 || repoSignal) ? 'tight' : spreadNow.value <= 0 && !(srfNow?.value > 0) ? 'clear' : 'watch';
-  const ois = series('ois_1y1y'); const oisNow = latest(ois); const tips = latest(d.tips20);
+  const ois = series('ois_1y1y'); const oisNow = latest(ois); const tips = latest(d.tips20); let ois20 = null;
   let pState = 'unknown';
-  if (ois.length > 20 && tips) { const ois20 = ois.at(-1).value - ois.at(-21).value; pState = ois20 > .05 && tips.value > .05 ? 'tight' : ois20 < -.05 && tips.value < -.05 ? 'loose' : 'split'; }
-  return { q: qState, g: gState, p: pState, qPoint: q, spread: spreadNow, spreadDays, srf: srfNow, repoSignal, tips, oisNow, oisCount: ois.length };
+  if (ois.length > 20 && tips) { ois20 = ois.at(-1).value - ois.at(-21).value; pState = ois20 > .05 && tips.value > .05 ? 'tight' : ois20 < -.05 && tips.value < -.05 ? 'loose' : 'split'; }
+  return { q: qState, g: gState, p: pState, qPoint: q, spread: spreadNow, spreadDays, srf: srfNow, repoSignal, tips, oisNow, ois20, oisCount: ois.length };
 }
 
 function statusLabel(state) { return ({ loose: '已观察到扩张', tight: '已观察到收紧', flat: '尚未观察到方向', clear: '尚未观察到管道压力', watch: '证据待确认', split: '短长端分歧', unknown: '数据不足' })[state] || '待确认'; }
 function statusClass(state) { return ['loose', 'clear'].includes(state) ? 'positive' : state === 'tight' ? 'negative' : state === 'unknown' ? 'pending' : 'watch'; }
+
+const SCENARIOS = [
+  { code: '①', name: '全面转松', p: 'down', q: 'up', g: 'better', meaning: '价格、数量、融资传导同时改善', plain: '钱更便宜、缓冲更多、也更容易拿到', mistake: '金融条件改善，不等于企业盈利已经改善' },
+  { code: '②', name: '放水但传导不畅', p: 'down', q: 'up', g: 'worse', meaning: '总量支持增加，但融资渠道仍有堵点', plain: '水便宜了，也加水了，但有些管道堵着', mistake: '看到扩表或降息，就认为所有资产都受益' },
+  { code: '③', name: '降价减量，但尚顺畅', p: 'down', q: 'down', g: 'better', meaning: '资金价格下降，数量缓冲减少，但尚未明显妨碍融资', plain: '水少了一些，不过更便宜、输送也正常', mistake: '仅凭 Q 减少就判断流动性危机' },
+  { code: '④', name: '降价也难缓解缺钱', p: 'down', q: 'down', g: 'worse', meaning: '利率下降与数量、分配压力并存；也可能是政策正在应对压力', plain: '借钱标价降了，但可用缓冲更少、借起来更难', mistake: '把降息直接理解为风险解除' },
+  { code: '⑤', name: '钱多但贵，管道顺畅', p: 'up', q: 'up', g: 'better', meaning: '数量缓冲增加，但利率条件趋紧', plain: '不缺水、送得到，只是用水更贵', mistake: '把“有流动性”误当成“估值没有压力”' },
+  { code: '⑥', name: '钱多但贵，且分配不畅', p: 'up', q: 'up', g: 'worse', meaning: '总量增加未能消除融资摩擦，利率又形成额外压力', plain: '池子变大，但水贵，部分地方仍缺水', mistake: '看到 Q 增加就忽略局部融资困难' },
+  { code: '⑦', name: '价量收紧，但运行正常', p: 'up', q: 'down', g: 'better', meaning: '利率更高、数量缓冲更少，但市场传导仍正常', plain: '水贵了、少了，但管道仍通畅', mistake: '把金融条件收紧直接等同于市场失灵' },
+  { code: '⑧', name: '多重压力叠加', p: 'up', q: 'down', g: 'worse', meaning: '成本、缓冲和融资可得性同时承压', plain: '水更贵、更少，也更难拿到', mistake: '只当成估值调整，忽略再融资与杠杆压力' },
+];
+
+function scenarioSignals(state) {
+  return {
+    p: state.p === 'loose' ? 'down' : state.p === 'tight' ? 'up' : null,
+    q: state.q === 'loose' ? 'up' : state.q === 'tight' ? 'down' : null,
+    g: state.g === 'clear' ? 'better' : state.g === 'tight' ? 'worse' : null,
+  };
+}
+
+function renderScenarioMatrix(state) {
+  const signals = scenarioSignals(state); const known = Object.values(signals).filter(Boolean).length;
+  const ranked = SCENARIOS.map(item => { const dimensions = ['p', 'q', 'g']; const matches = dimensions.filter(key => signals[key] && signals[key] === item[key]).length; const conflicts = dimensions.filter(key => signals[key] && signals[key] !== item[key]).length; return { item, matches, conflicts }; });
+  let candidates = ranked.filter(row => row.conflicts === 0 && row.matches === known);
+  if (!candidates.length) { const best = Math.max(...ranked.map(row => row.matches - row.conflicts)); candidates = ranked.filter(row => row.matches - row.conflicts === best); }
+  const exact = known === 3 && candidates.length === 1; const candidateCodes = new Set(candidates.map(row => row.item.code));
+  const verdict = $('scenario-verdict'); verdict.replaceChildren(); verdict.className = `scenario-verdict ${exact ? 'exact' : 'partial'}`;
+  verdict.append(el('small', '', exact ? '当前可能情景' : known ? '当前候选情景' : '暂不归类'), el('strong', '', exact ? `${candidates[0].item.code} ${candidates[0].item.name}` : known ? candidates.map(row => `${row.item.code} ${row.item.name}`).join(' ／ ') : '关键数据不足'), el('span', '', exact ? '三项信号已形成唯一组合' : `已确认 ${known}/3 项；其余维度等待确认`));
+
+  const signalRoot = $('scenario-signals'); signalRoot.replaceChildren();
+  const signalRows = [
+    ['P', signals.p === 'down' ? '↓ 价格下降' : signals.p === 'up' ? '↑ 价格上升' : '↔ 尚未形成单向', state.ois20 === null ? '1Y1Y 路径观察不足' : `1Y1Y 20日 ${state.ois20 >= 0 ? '+' : ''}${nf(state.ois20, 3)} pct；实际利率 ${state.tips ? `${state.tips.value >= 0 ? '+' : ''}${nf(state.tips.value, 3)} pct` : '不足'}`],
+    ['Q', signals.q === 'up' ? '↑ 水量增加' : signals.q === 'down' ? '↓ 水量减少' : '↔ 变化未过阈值', state.qPoint ? `四周净变化 ${state.qPoint.value >= 0 ? '+' : ''}${nf(state.qPoint.value, 3)} T` : '共同日期不足'],
+    ['g', signals.g === 'better' ? '改善 · 管道顺畅' : signals.g === 'worse' ? '恶化 · 压力已确认' : '观察 · 证据未闭合', state.spread ? `SOFR−IORB ${nf(state.spread.value, 1)} bp；连续正值 ${state.spreadDays} 个观测` : '同日数据不足'],
+  ];
+  signalRows.forEach(([key, label, detail]) => { const signal = signals[key.toLowerCase()]; const card = el('article', `scenario-signal ${key.toLowerCase()} ${signal ? 'decided' : 'undecided'}`); card.append(el('b', '', key), el('strong', '', label), el('span', '', detail)); signalRoot.append(card); });
+
+  const body = $('scenario-table-body'); body.replaceChildren();
+  SCENARIOS.forEach(item => { const highlighted = candidateCodes.has(item.code); const row = el('tr', exact && highlighted ? 'is-current' : highlighted ? 'is-candidate' : ''); const title = el('th'); title.scope = 'row'; title.append(el('span', 'scenario-code', item.code), el('strong', '', item.name)); if (highlighted) title.append(el('em', 'scenario-match', exact ? '当前' : '候选')); row.append(title, el('td', 'scenario-direction', item.p === 'up' ? '↑' : '↓'), el('td', 'scenario-direction', item.q === 'up' ? '↑' : '↓'), el('td', 'scenario-pipe', item.g === 'better' ? '改善' : '恶化'), el('td', '', item.meaning), el('td', '', item.plain), el('td', 'scenario-mistake', item.mistake)); body.append(row); });
+}
 
 function renderEvidence(d, state) {
   const specs = [
@@ -80,6 +122,7 @@ function renderEvidence(d, state) {
 const PANELS = [
   { section: 'q', icon: '◆', title: 'Q · 钱的数量', intro: '先看水位，再看边际；Q 的变化二阶比静态水平更重要。', panels: [
     { id: 'q-level', title: '准备金、ON RRP 与有效流动性代理', unit: '万亿美元', lines: d => [{ name: '准备金', data: series('reserves'), color: '#315f8a' }, { name: 'ON RRP', data: series('on_rrp'), color: '#85a9c7' }, { name: '合计', data: d.qTotal, color: '#19252e', width: 3 }], what: '准备金是银行体系水位，ON RRP 是非银蓄水池；两者合计是本页的有效市场流动性代理。', how: '合计持续下降表示水量收缩；ON RRP 接近耗尽后，同样的抽水更直接消耗准备金。', mistake: '合计不是 M2，也不是社融；TGA 已通过负债端影响准备金，不能从合计里再扣一次。' },
+    { id: 'q-corridor', title: '联储操作利率走廊', unit: '%', band: { upper: 'discount_rate', lower: 'on_rrp_rate', color: 'rgba(49,95,138,.14)' }, lines: () => [{ name: 'ON RRP 利率', data: series('on_rrp_rate'), color: '#24756f', width: 2, steps: true }, { name: 'IORB', data: series('iorb'), color: '#315f8a', width: 3, steps: true }, { name: '贴现率（主要信贷）', data: series('discount_rate'), color: '#9d2933', width: 2, steps: true }], what: '三项管理利率分别连接不同交易对手。ON RRP 面向货币基金、GSE 与其他合格对手方，IORB 直接作用于银行准备金，贴现窗口主要信贷利率是银行向联储借款的后备价格。', how: '蓝色阴影覆盖 ON RRP 利率到贴现窗口主要信贷利率之间的操作走廊；IORB 是银行体系的基准回报。三条线同步移动代表政策利率中枢变化，线间距离反映工具定价结构。', mistake: '利率走廊不是 Q 的数量加总；贴现率是后备工具价格，不是每笔市场融资的硬天花板。ON RRP 利率也不能替代 ON RRP 余额。' },
     { id: 'q-momentum', title: '四周净变化与变化的变化', unit: '万亿美元', lines: d => [{ name: '四周净变化', data: d.q4w, color: '#315f8a', width: 3 }, { name: '二阶变化', data: d.qAccel, color: '#a97513' }], what: '四周净变化看抽水或灌水；二阶变化看抽水是否正在加速。', how: '净变化为负且二阶继续为负，收缩在加速；二阶转正只代表压力缓和。', mistake: '水平仍高但下降速度放缓，不等于已经重新宽松。' },
     { id: 'q-tga', title: 'TGA 财政吞吐', unit: '万亿美元', lines: d => [{ name: 'TGA 余额', data: series('tga'), color: '#315f8a', width: 3 }, { name: '周变化', data: d.tgaChange, color: '#a97513', scale: 'left' }], what: 'TGA 是美国财政部在联储的账户。本页使用 H.4.1 周三余额。', how: 'TGA 上升通常从市场吸走资金，下降通常向市场释放资金；应和发债结构一起看。', mistake: 'TGA 单周变化有强烈日历性，不能单独定义趋势。' },
     { id: 'q-buffer', title: 'ON RRP 缓冲与实际缩表代理', unit: '万亿美元', zero: true, lines: d => [{ name: 'ON RRP', data: series('on_rrp'), color: '#315f8a', width: 3 }, { name: 'Fed 总资产四周实际下降', data: d.qtActual, color: '#9d2933' }, { name: '海绵差值：ON RRP − 四周实际下降', data: d.rrpBuffer, color: '#24756f', width: 3 }], what: '用 Fed 总资产四周实际下降观察真实抽水节奏；再用 ON RRP 减去该抽水量，直接衡量海绵还剩多少。', how: '海绵差值为正，表示 ON RRP 仍覆盖近期四周实际抽水；等于或低于零，表示按这个代理口径缓冲已不足，新增缩表更可能直接落在准备金。', mistake: '这是实际缩表代理，不是计划 QT 上限；QT 停止或总资产受其他科目扰动时，差值不能机械解释。' },
@@ -90,15 +133,13 @@ const PANELS = [
     { id: 'g-repo', title: 'Repo 成交量与资金价格', unit: '量：万亿美元 / 价：%', lines: d => [{ name: 'Repo 总成交量', data: d.repoTotal, color: '#24756f', width: 3 }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', scale: 'left' }], what: 'OFR 三类 Repo 成交量与 SOFR 上下对齐，观察资金量和融资价格是否共同变化。', how: '价格上行同时伴随结构或成交异常，比单看价格更接近扩散证据。', mistake: '成交量上升可能只是正常融资需求，不等于缺钱。' },
   ]},
   { section: 'p', icon: '♨', title: 'P · 钱的价格', intro: '短端看水平与预期路径，长端看实际利率和期限溢价的变化。', panels: [
-    { id: 'p-ois', title: '美国 OIS 期限曲线（MacroMicro）', unit: '%', lines: d => [
+    { id: 'p-ois', title: '美国 OIS 历史期限曲线 · MacroMicro', unit: '%', lines: d => [
       { name: '1M', data: series('ois_1m'), color: '#8d281f' }, { name: '3M', data: series('ois_3m'), color: '#b45b31' },
       { name: '6M', data: series('ois_6m'), color: '#c48a24' }, { name: '1Y', data: series('ois_1y'), color: '#24756f', width: 3 },
       { name: '2Y', data: series('ois_2y'), color: '#315f8a', width: 3 }, { name: '10Y', data: series('ois_10y'), color: '#65508f' },
       { name: '30Y', data: series('ois_30y'), color: '#776f67' }, { name: '短端路径中枢', data: d.oisShortCenter, color: '#19252e', width: 4 }],
       what: '隔夜指数掉期的固定端利率，按 1M、3M、6M、1Y、2Y、10Y、30Y 分列，反映市场对未来隔夜利率及期限补偿的定价。',
       reference: { label: 'MacroMicro · 美国隔夜指数掉期原图', url: 'https://sc.macromicro.me/charts/115044/us-overnight-indexed-swaps' },
-      webImage: { src: './assets/ois-web-chart-2026-10-08.png', date: '2026-10-08', alt: 'MacroMicro 美国隔夜指数掉期图表网页截图，包含 1个月、3个月、6个月、1年、2年、10年及30年 OIS 曲线。', url: 'https://sc.macromicro.me/charts/115044/us-overnight-indexed-swaps' },
-      webSnapshot: 'ois',
       how: '短端路径中枢取 3M、6M、1Y、2Y 在共同观测日的等权平均。第一层要求它与 10Y 实际利率在同一个 20 个交易日窗口内同时上移，形成 2 项独立确认。',
       mistake: '这些是即期起息期限，并不等于 1Y1Y 远期 OIS；曲线倒挂或变陡也不能单独证明流动性宽松或紧张。' },
     { id: 'p-term-sofr', title: 'CME Term SOFR · 短端路径代理', unit: '%', lines: d => [
@@ -108,9 +149,6 @@ const PANELS = [
       { name: '12M Term SOFR', data: series('term_sofr_1y'), color: '#315f8a', width: 3 },
       { name: '代理路径中枢', data: d.termSofrCenter, color: '#19252e', width: 4 }],
       what: 'CME 官方前瞻性 Term SOFR，提供 1M、3M、6M、12M 日度历史。直接 OIS 历史不足时，本页用四个期限的共同日期等权平均作为短端路径代理。',
-      reference: { label: 'CME · Term SOFR 官方网页', url: 'https://www.cmegroup.com/market-data/cme-group-benchmark-administration/term-sofr.html' },
-      webImage: { src: './assets/cme-term-sofr-table-2026-10-09.png', date: '2026-10-09', alt: 'CME 官方 Term SOFR 网页表格截图，显示最近五个交易日的 1个月、3个月、6个月及12个月参考利率。', url: 'https://www.cmegroup.com/market-data/cme-group-benchmark-administration/term-sofr.html' },
-      webSnapshot: 'cme',
       how: '代理中枢与 10Y 实际利率在同一个 20 个交易日窗口内都上移，才形成第一层的代理 2/2 确认；直接 OIS 数据充分且新鲜时会自动优先使用直接 OIS。',
       mistake: 'Term SOFR 由 SOFR 衍生品隐含预期生成，不是场外 OIS 平价掉期报价，也不能替代 2Y 以上的 OIS 曲线。' },
     { id: 'p-short', title: '短端利率与预期路径', unit: '%', lines: () => [{ name: 'IORB', data: series('iorb'), color: '#776f67' }, { name: 'SOFR', data: series('sofr'), color: '#9d2933', width: 3 }, { name: '1Y1Y SR3 代理', data: series('ois_1y1y'), color: '#315f8a' }], what: 'IORB 和 SOFR 是已实现短端；1Y1Y SR3 代理用于读取未来第 13—24 个月的预期中枢。', how: '预期路径与长端实际利率同向，P 的方向才更强。缺失时图表明确留空。', mistake: '降息动作或一天的期货跳动，不等于 P 已经转松。' },
@@ -120,9 +158,29 @@ const PANELS = [
 ];
 
 function createChart(container, panel, d) {
+  if (!window.LightweightCharts) {
+    container.append(el('p', 'ois-history-status', '图表组件暂时无法加载；数据、图例和读图说明仍可查看。'));
+    return { chart: null, created: [], panel, container };
+  }
+  if (panel.id === 'p-ois') {
+    const data = panel.lines(d).flatMap(line => line.data);
+    const dates = [...new Set(data.map(point => point.time))].sort();
+    const note = el('p', 'ois-history-status');
+    note.setAttribute('role', 'status');
+    note.textContent = dates.length < 2
+      ? `历史数据未接通 · ${dates.length ? `目前只有 ${dates[0]} 单日快照` : '暂无有效观测'}，无法形成历史曲线。`
+      : `历史覆盖 ${dates[0]} — ${dates.at(-1)} · ${dates.length} 个观测日 · 缺失日期不补值`;
+    container.before(note);
+  }
   const chart = LightweightCharts.createChart(container, { autoSize: true, layout: { background: { type: 'solid', color: '#fffefb' }, textColor: '#6f6a63', fontSize: 11, attributionLogo: true }, grid: { vertLines: { color: '#eee9df' }, horzLines: { color: '#e7e0d5', style: 2 } }, rightPriceScale: { borderVisible: false }, leftPriceScale: { visible: true, borderVisible: false }, timeScale: { borderVisible: false, rightOffset: 1 }, crosshair: { vertLine: { color: '#aaa096' }, horzLine: { color: '#aaa096' } }, handleScroll: { vertTouchDrag: false }, localization: { locale: 'zh-CN' } });
   const lines = panel.lines(d); const created = [];
-  lines.forEach((spec, index) => { const line = chart.addSeries(LightweightCharts.LineSeries, { color: spec.color, lineWidth: spec.width || 2, priceScaleId: spec.scale || 'right', priceLineVisible: false, lastValueVisible: true, crosshairMarkerRadius: 3, title: spec.name }); line.setData(spec.data); if (panel.zero && index === 0) line.createPriceLine({ price: 0, color: '#9d2933', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '零线' }); created.push({ line, spec }); });
+  if (panel.band) {
+    const upperData = series(panel.band.upper); const lowerData = series(panel.band.lower);
+    const upper = chart.addSeries(LightweightCharts.AreaSeries, { lineVisible: false, lineType: LightweightCharts.LineType.WithSteps, topColor: panel.band.color, bottomColor: panel.band.color, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    const mask = chart.addSeries(LightweightCharts.AreaSeries, { lineVisible: false, lineType: LightweightCharts.LineType.WithSteps, topColor: '#fffefb', bottomColor: '#fffefb', priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    upper.setData(upperData); mask.setData(lowerData); created.push({ line: upper, spec: { name: '操作走廊上沿', data: upperData } }, { line: mask, spec: { name: '操作走廊下沿', data: lowerData } });
+  }
+  lines.forEach((spec, index) => { const line = chart.addSeries(LightweightCharts.LineSeries, { color: spec.color, lineWidth: spec.width || 2, lineType: spec.steps ? LightweightCharts.LineType.WithSteps : LightweightCharts.LineType.Simple, priceScaleId: spec.scale || 'right', priceLineVisible: false, lastValueVisible: true, crosshairMarkerRadius: 3, title: spec.name }); line.setData(spec.data); if (panel.zero && index === 0) line.createPriceLine({ price: 0, color: '#9d2933', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '零线' }); created.push({ line, spec }); });
   return { chart, created, panel, container };
 }
 
@@ -136,16 +194,26 @@ function firstLayerReading(d) {
   return { state, text: `${verdict}（${confirmations}/2 项确认，来源：${source}）：${d.firstLayer.start} 至 ${d.firstLayer.end}，短端路径中枢 ${d.firstLayer.left >= 0 ? '+' : ''}${nf(d.firstLayer.left, 3)} pct；10Y 实际利率 ${d.firstLayer.right >= 0 ? '+' : ''}${nf(d.firstLayer.right, 3)} pct。` };
 }
 function renderDashboard(d) {
+  chartViews.forEach(view => view.chart?.remove());
   const root = $('dashboard-sections'); root.replaceChildren(); chartViews.length = 0;
   PANELS.forEach(group => { const section = el('section', `factor-section factor-${group.section}`); const head = el('div', 'factor-heading'); head.append(el('span', 'factor-icon large', group.icon), el('div')); head.lastChild.append(el('p', 'eyebrow', `LAYER / ${group.section.toUpperCase()}`), el('h2', '', group.title), el('p', '', group.intro)); section.append(head);
-    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const point = latest(line.data); const item = el('span', '', point ? `${line.name} ${nf(point.value, panel.unit === '基点' ? 1 : 3)} · ${point.time}` : `${line.name} · 暂无数据`); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what)); if (panel.webImage) explainer.append(webImageCard(panel.webImage)); if (panel.webSnapshot) explainer.append(webSnapshotCard(panel.webSnapshot)); if (panel.reference) explainer.append(referenceLink(panel.reference)); explainer.append(explanation('怎么看', panel.how)); if (panel.id === 'p-ois') { const verdict = firstLayerReading(d); const row = explanation('第一层判定', verdict.text); row.className = `layer-verdict ${verdict.state}`; explainer.append(row); } explainer.append(explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
+    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const point = latest(line.data); const item = el('span', '', point ? `${line.name} ${nf(point.value, panel.unit === '基点' ? 1 : 3)} · ${point.time}` : `${line.name} · 暂无数据`); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what)); if (panel.reference) explainer.append(referenceLink(panel.reference)); explainer.append(explanation('怎么看', panel.how)); if (panel.id === 'q-corridor') explainer.append(rateCorridorGuide()); if (panel.id === 'p-ois') { const verdict = firstLayerReading(d); const row = explanation('第一层判定', verdict.text); row.className = `layer-verdict ${verdict.state}`; explainer.append(row); } explainer.append(explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
   applyRange();
+  // Charts mount in detached panels; wait for autoSize before setting the date window.
+  requestAnimationFrame(() => requestAnimationFrame(applyRange));
 }
 function explanation(label, value) { const p = el('p'); p.append(el('strong', '', `${label}：`), document.createTextNode(value)); return p; }
 function referenceLink(reference) { const p = el('p'); const a = el('a', 'method-link', `${reference.label} ↗`); a.href = reference.url; a.target = '_blank'; a.rel = 'noopener noreferrer'; p.append(el('strong', '', '参考链接：'), a); return p; }
-function webImageCard(image) { const figure = el('figure', 'web-snapshot'); const link = el('a'); link.href = image.src; link.target = '_blank'; link.rel = 'noopener noreferrer'; const picture = el('img'); picture.src = image.src; picture.alt = image.alt; picture.loading = 'lazy'; picture.decoding = 'async'; link.append(picture); figure.append(link, el('figcaption', '', `目标网页截图 · ${image.date} · 点击图片原尺寸查看`)); return figure; }
-function webSnapshotCard(kind) { const card = el('div', 'layer-verdict pending'); const snapshot = kind === 'ois' ? oisWebSnapshot : cmeWebSnapshot; const title = kind === 'ois' ? 'MacroMicro OIS 网页快照' : 'CME 网页快照'; if (!snapshot?.values) { card.append(el('strong', '', `${title}：`), document.createTextNode('暂不可用，请通过下方原网页链接查看。')); return card; } const values = snapshot.values; card.append(el('strong', '', `${title} · ${snapshot.observed_date}`)); if (kind === 'ois') { card.append(el('p', '', `1M ${nf(values['1m'], 2)}% · 3M ${nf(values['3m'], 2)}% · 6M ${nf(values['6m'], 2)}% · 1Y ${nf(values['1y'], 2)}%`), el('p', '', `2Y ${nf(values['2y'], 2)}% · 10Y ${nf(values['10y'], 2)}% · 30Y ${nf(values['30y'], 2)}%`)); } else { card.append(el('p', '', `1M ${nf(values['1m'], 5)}% · 3M ${nf(values['3m'], 5)}% · 6M ${nf(values['6m'], 5)}% · 12M ${nf(values['12m'], 5)}%`)); } card.append(el('p', '', '仅作人工核对，不写入历史序列，也不参与中枢和第一层判定。')); return card; }
-function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'q-buffer' ? '海绵差值 = 同一观测日 ON RRP − max（四周前 Fed 总资产 − 当前 Fed 总资产，0）。只使用共同日期。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-ois' ? '直接 OIS 中枢 =（3M + 6M + 1Y + 2Y）÷ 4；若直接数据不足，则使用 CME Term SOFR 代理中枢 =（1M + 3M + 6M + 12M）÷ 4。只使用各组四条曲线与 10Y 实际利率都有值的共同交易日；直接 OIS 新鲜且完整时优先。以第 21 个共同观测减第 1 个共同观测，得到 20 个交易日变化；两项变化都大于 0 才算 2/2 独立确认。' : panel.id === 'p-term-sofr' ? '代理路径中枢 =（1M + 3M + 6M + 12M CME Term SOFR）÷ 4，只在四个期限具有共同观测日时计算。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
+function rateCorridorGuide() {
+  const guide = el('div', 'rate-corridor-guide');
+  [
+    ['floor', 'ON RRP 利率', '货币基金、部分银行、GSE 等', '非银可把资金隔夜借给联储', '给市场利率设“地板”'],
+    ['anchor', 'IORB · 准备金利息', '银行', '银行把准备金放在联储可获得无风险收益', '给银行一个“基准回报”'],
+    ['ceiling', '贴现率 · 主要信贷', '银行', '银行可通过贴现窗口向联储借款', '给融资压力提供“天花板”式后备'],
+  ].forEach(([tone, name, audience, action, analogy]) => { const row = el('div', `corridor-row ${tone}`); row.append(el('span', 'corridor-dot'), el('div', 'corridor-copy')); row.lastChild.append(el('strong', '', name), el('small', '', `作用对象：${audience}`), el('span', '', action), el('em', '', analogy)); guide.append(row); });
+  return guide;
+}
+function formula(panel) { const details = el('details', 'formula'); details.append(el('summary', '', '展开计算口径'), el('p', '', panel.id === 'q-level' ? '只在准备金与 ON RRP 具有相同观测日期时相加。' : panel.id === 'q-corridor' ? '下沿使用 FRED RRPONTSYAWARD，上沿使用 DPCREDIT，中间线使用 IORB；三者均保留日频原始值，不做前向填充。色带只表达操作利率走廊，不参与 Q 数量计算。' : panel.id === 'q-buffer' ? '海绵差值 = 同一观测日 ON RRP − max（四周前 Fed 总资产 − 当前 Fed 总资产，0）。只使用共同日期。' : panel.id === 'g-spread' ? '(SOFR − IORB) × 100，单位为基点。' : panel.id === 'p-ois' ? '直接 OIS 中枢 =（3M + 6M + 1Y + 2Y）÷ 4；若直接数据不足，则使用 CME Term SOFR 代理中枢 =（1M + 3M + 6M + 12M）÷ 4。只使用各组四条曲线与 10Y 实际利率都有值的共同交易日；直接 OIS 新鲜且完整时优先。以第 21 个共同观测减第 1 个共同观测，得到 20 个交易日变化；两项变化都大于 0 才算 2/2 独立确认。' : panel.id === 'p-term-sofr' ? '代理路径中枢 =（1M + 3M + 6M + 12M CME Term SOFR）÷ 4，只在四个期限具有共同观测日时计算。' : panel.id === 'p-real' ? '当前值减 20 个有效交易日前的值。' : '原始频率保留；不对休市日或缺失日做前向填充。')); return details; }
 
 function applyRange() { const days = RANGE_DAYS[currentRange]; chartViews.forEach(view => { const all = view.created.flatMap(x => x.spec.data); if (!all.length) return; const end = new Date(`${all.map(p => p.time).sort().at(-1)}T00:00:00Z`); if (Number.isFinite(days)) { const start = new Date(end); start.setUTCDate(start.getUTCDate() - days); view.chart.timeScale().setVisibleRange({ from: start.toISOString().slice(0, 10), to: end.toISOString().slice(0, 10) }); } else view.chart.timeScale().fitContent(); }); }
 
@@ -180,7 +248,59 @@ function renderChecklist(d, state) {
 function renderSources() { const root = $('pqg-sources'); root.replaceChildren(); const all = { ...liquidity.series, ...liquidity.repo_series, tbill_events: liquidity.tbill_events }; Object.values(all).forEach(source => { const row = el('div', 'source-item'); const link = el('a', '', `${source.name} ↗`); link.href = source.source_url; link.target = '_blank'; link.rel = 'noopener noreferrer'; row.append(link, el('div', '', `${source.source} · ${source.unit} · ${source.frequency}${source.proxy ? ' · 代理指标' : ''}`), el('div', '', `最新 ${source.last_date || '无数据'} · ${freshness(source)}`), el('div', '', source.note || ''), el('div', '', source.message || '')); root.append(row); }); }
 
 function validate(data) { const value = data?.liquidity_pqg; if (!Number.isInteger(data?.schema_version) || data.schema_version < 2 || !value?.series) throw new Error('流动性快照格式不正确'); return value; }
-async function load() { try { const [response, cmeResponse, oisResponse] = await Promise.all([fetch('./data.json', { cache: 'no-store', signal: AbortSignal.timeout(20000) }), fetch('./cme_term_sofr_snapshot.json', { cache: 'no-store', signal: AbortSignal.timeout(10000) }).catch(() => null), fetch('./macromicro_ois_snapshot.json', { cache: 'no-store', signal: AbortSignal.timeout(10000) }).catch(() => null)]); if (!response.ok) throw new Error(`HTTP ${response.status}`); const snapshot = await response.json(); cmeWebSnapshot = cmeResponse?.ok ? await cmeResponse.json() : null; oisWebSnapshot = oisResponse?.ok ? await oisResponse.json() : null; liquidity = validate(snapshot); const d = prepareDerived(); const state = inferState(d); renderEvidence(d, state); renderDashboard(d); renderCombinations(state); renderChecklist(d, state); renderSources(); const generated = new Date(snapshot.generated_at).toLocaleString('zh-CN', { timeZone: 'Europe/Berlin', hour12: false }); $('pqg-update-status').textContent = `快照生成 ${generated} 柏林时间 · 最新观测 ${liquidity.as_of || '待核验'}`; $('pqg-error').hidden = true; } catch (error) { $('pqg-error').hidden = false; $('pqg-error').textContent = `读取流动性快照失败：${error.message}`; $('pqg-update-status').textContent = '数据读取失败'; } }
+async function load() {
+  try {
+    const response = await fetch('./data.json', { cache: 'no-store', signal: AbortSignal.timeout(20000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const snapshot = await response.json(); liquidity = validate(snapshot);
+    const d = prepareDerived(); const state = inferState(d);
+    renderScenarioMatrix(state); renderEvidence(d, state); renderDashboard(d);
+    renderCombinations(state); renderChecklist(d, state); renderSources();
+    const generated = new Date(snapshot.generated_at).toLocaleString('zh-CN', { timeZone: 'Europe/Berlin', hour12: false });
+    $('pqg-update-status').textContent = `快照生成 ${generated} 柏林时间 · 最新观测 ${liquidity.as_of || '待核验'}`;
+    $('pqg-error').hidden = true;
+    if (!window.LightweightCharts) chartLoadNotice(false);
+  } catch (error) {
+    $('pqg-error').hidden = false;
+    $('pqg-error').textContent = `读取流动性快照失败：${error.message}${liquidity ? '；继续显示上次成功读取的数据。' : ''}`;
+    $('pqg-update-status').textContent = '数据读取失败';
+  }
+}
+
+function chartLoadNotice(retrying) {
+  const notice = $('pqg-error'); notice.hidden = false; notice.replaceChildren();
+  notice.append(document.createTextNode(retrying
+    ? '图表组件暂未加载，正在自动重试；文字和数据不受影响。'
+    : '图表组件加载失败；情景矩阵、数据和说明仍可查看。请重试，或检查网络及浏览器拦截设置。'));
+  if (!retrying) {
+    const button = el('button', 'dashboard-action', '重试加载图表');
+    button.type = 'button'; button.id = 'retry-charts';
+    button.addEventListener('click', recoverCharts); notice.append(document.createTextNode(' '), button);
+  }
+}
+
+let chartRecovery = null;
+function recoverCharts() {
+  if (chartRecovery) return chartRecovery;
+  chartRecovery = (async () => {
+    chartLoadNotice(true);
+    for (let attempt = 0; attempt < 2 && !window.LightweightCharts; attempt += 1) {
+      await new Promise(resolve => {
+        const script = document.createElement('script');
+        script.src = `/liquidity-runtime.js?v=20261016-1&retry=${Date.now()}-${attempt}`;
+        script.async = true;
+        const finish = () => { clearTimeout(timer); script.onload = script.onerror = null; script.remove(); resolve(); };
+        const timer = setTimeout(finish, 10000);
+        script.onload = script.onerror = finish;
+        document.head.append(script);
+      });
+    }
+    if (window.LightweightCharts) await load();
+    else chartLoadNotice(false);
+  })().finally(() => { chartRecovery = null; });
+  return chartRecovery;
+}
 
 document.querySelectorAll('#range-control button').forEach(button => button.addEventListener('click', () => { currentRange = button.dataset.range; document.querySelectorAll('#range-control button').forEach(item => item.setAttribute('aria-pressed', String(item === button))); applyRange(); }));
-try { if (!window.LightweightCharts) throw new Error('图表组件未加载'); load(); setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000); } catch (error) { $('pqg-error').hidden = false; $('pqg-error').textContent = error.message; }
+load().then(() => { if (!window.LightweightCharts) recoverCharts(); });
+setInterval(() => { if (!document.hidden) load(); }, 15 * 60 * 1000);
