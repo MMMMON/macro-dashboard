@@ -28,7 +28,7 @@ with sync_playwright() as p:
     assert page.evaluate('typeof window.manualDashboardRefresh') == 'function'
     assert not errors, errors
     panel = page.locator('.explain-panel').filter(has_text='美国 OIS 历史期限曲线 · MacroMicro')
-    assert '历史覆盖 2025-01-02' in panel.locator('.ois-history-status').inner_text()
+    assert '历史覆盖 2024-01-02' in panel.locator('.ois-history-status').inner_text()
     artifacts = Path(__file__).resolve().parents[1] / 'artifacts'
     artifacts.mkdir(exist_ok=True)
     panel.screenshot(path=str(artifacts / 'ois-history-live.png'))
