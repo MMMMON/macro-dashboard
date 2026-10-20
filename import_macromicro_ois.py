@@ -63,12 +63,21 @@ def main():
     payload = json.loads(args.data_json.read_text(encoding="utf-8"))
     series = payload["liquidity_pqg"]["series"]
     end = datetime.now(timezone.utc).date() + timedelta(days=1)
-    imported = {}
+    cleaned = {}
     for key, (stat_id, tenor) in feed.MACROMICRO_OIS.items():
         old_points = [(p.get("time"), p.get("value")) for p in series.get(key, {}).get("data", [])]
         points = feed.clean_points(old_points + rows[key], feed.MACROMICRO_OIS_START, end)
         if not points:
             raise ValueError(f"CSV 的 {tenor} 列没有有效数据")
+        cleaned[key] = points
+    common_dates = set.intersection(*(
+        {point["time"] for point in cleaned[key]} for key in feed.MACROMICRO_OIS
+    ))
+    if not common_dates:
+        raise ValueError("CSV 合并后七个期限没有共同观测日期，已停止写入")
+    imported = {}
+    for key, (stat_id, tenor) in feed.MACROMICRO_OIS.items():
+        points = [point for point in cleaned[key] if point["time"] in common_dates]
         imported[key] = feed.make_series({
             "name": f"美国 OIS {tenor}", "symbol": f"MacroMicro {stat_id}", "unit": "%",
             "frequency": "daily", "source": "MacroMicro（账户授权 CSV）",

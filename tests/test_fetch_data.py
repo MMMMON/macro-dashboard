@@ -45,7 +45,7 @@ class SnapshotTests(unittest.TestCase):
             self.assertNotIn("cms_ois_1y", updated)
             self.assertEqual(updated["ois_1m"]["source"], "MacroMicro（账户授权 CSV）")
 
-    def test_macromicro_csv_rejects_misaligned_tenors_without_writing(self):
+    def test_macromicro_csv_drops_partial_dates_across_all_tenors(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             csv_path, data_path = root / "ois.csv", root / "data.json"
@@ -55,13 +55,13 @@ class SnapshotTests(unittest.TestCase):
                 "2026-01-06,3.69,3.66,3.60,3.45,3.32,3.81,\n",
                 encoding="utf-8",
             )
-            original = json.dumps({"liquidity_pqg": {"series": {}}})
-            data_path.write_text(original, encoding="utf-8")
+            data_path.write_text(json.dumps({"liquidity_pqg": {"series": {}}}), encoding="utf-8")
             with patch("sys.argv", ["import_macromicro_ois.py", str(csv_path),
                                      "--data-json", str(data_path)]):
-                with self.assertRaisesRegex(ValueError, "观测日期不一致"):
-                    ois_import.main()
-            self.assertEqual(data_path.read_text(encoding="utf-8"), original)
+                ois_import.main()
+            updated = json.loads(data_path.read_text(encoding="utf-8"))["liquidity_pqg"]["series"]
+            for key in feed.MACROMICRO_OIS:
+                self.assertEqual([p["time"] for p in updated[key]["data"]], ["2026-01-05"])
 
     def test_outage_preserves_values(self):
         result = feed.make_series(self.meta, [], {"data": self.points}, self.start, self.end, "outage")
