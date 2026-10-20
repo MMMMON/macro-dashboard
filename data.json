@@ -12,15 +12,11 @@
       "stale_days": 1,
       "source_url": "https://finance.yahoo.com/quote/BTC-USD/",
       "note": "日线复权收盘",
-      "status": "ok",
-      "stale": false,
+      "status": "cached",
+      "stale": true,
       "last_date": "2026-10-18",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 29682.949219
-        },
         {
           "time": "2023-10-21",
           "value": 29918.412109
@@ -4408,15 +4404,11 @@
       "stale_days": 1,
       "source_url": "https://finance.yahoo.com/quote/ETH-USD/",
       "note": "日线复权收盘",
-      "status": "ok",
-      "stale": false,
+      "status": "cached",
+      "stale": true,
       "last_date": "2026-10-18",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 1604.66687
-        },
         {
           "time": "2023-10-21",
           "value": 1629.304443
@@ -8805,15 +8797,11 @@
       "source_url": "https://finance.yahoo.com/quote/CL=F/",
       "note": "日线复权收盘；期货为连续近月合约，换月可能跳变",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 88.75
-        },
         {
           "time": "2023-10-23",
           "value": 85.489998
@@ -11830,15 +11818,11 @@
       "source_url": "https://finance.yahoo.com/quote/^GSPC/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 4224.160156
-        },
         {
           "time": "2023-10-23",
           "value": 4217.040039
@@ -14847,15 +14831,11 @@
       "source_url": "https://finance.yahoo.com/quote/QQQ/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 348.655853
-        },
         {
           "time": "2023-10-23",
           "value": 349.707947
@@ -17864,15 +17844,11 @@
       "source_url": "https://finance.yahoo.com/quote/SOXX/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 149.853607
-        },
         {
           "time": "2023-10-23",
           "value": 149.001617
@@ -20881,15 +20857,11 @@
       "source_url": "https://finance.yahoo.com/quote/GC=F/",
       "note": "日线复权收盘；期货为连续近月合约，换月可能跳变",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 1994.400024
-        },
         {
           "time": "2023-10-23",
           "value": 1987.800049
@@ -23910,15 +23882,11 @@
       "source_url": "https://finance.yahoo.com/quote/DX-Y.NYB/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 106.160004
-        },
         {
           "time": "2023-10-23",
           "value": 105.540001
@@ -26935,15 +26903,11 @@
       "source_url": "https://finance.yahoo.com/quote/AAPL/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 170.572983
-        },
         {
           "time": "2023-10-23",
           "value": 170.691376
@@ -29952,15 +29916,11 @@
       "source_url": "https://finance.yahoo.com/quote/MSFT/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 319.19397
-        },
         {
           "time": "2023-10-23",
           "value": 321.783325
@@ -32969,15 +32929,11 @@
       "source_url": "https://finance.yahoo.com/quote/NVDA/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 41.263756
-        },
         {
           "time": "2023-10-23",
           "value": 42.847034
@@ -35986,15 +35942,11 @@
       "source_url": "https://finance.yahoo.com/quote/AMZN/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 125.169998
-        },
         {
           "time": "2023-10-23",
           "value": 126.559998
@@ -39003,15 +38955,11 @@
       "source_url": "https://finance.yahoo.com/quote/GOOGL/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 134.321823
-        },
         {
           "time": "2023-10-23",
           "value": 135.213364
@@ -42020,15 +41968,11 @@
       "source_url": "https://finance.yahoo.com/quote/META/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 305.721893
-        },
         {
           "time": "2023-10-23",
           "value": 311.031036
@@ -45037,15 +44981,11 @@
       "source_url": "https://finance.yahoo.com/quote/TSLA/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 211.990005
-        },
         {
           "time": "2023-10-23",
           "value": 212.080002
@@ -48054,15 +47994,11 @@
       "source_url": "https://finance.yahoo.com/quote/^IXIC/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 12983.80957
-        },
         {
           "time": "2023-10-23",
           "value": 13018.330078
@@ -51071,15 +51007,11 @@
       "source_url": "https://finance.yahoo.com/quote/^GDAXI/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 14798.469727
-        },
         {
           "time": "2023-10-23",
           "value": 14800.719727
@@ -54124,15 +54056,11 @@
       "source_url": "https://finance.yahoo.com/quote/^N225/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 31259.359375
-        },
         {
           "time": "2023-10-23",
           "value": 30999.550781
@@ -57053,15 +56981,11 @@
       "source_url": "https://finance.yahoo.com/quote/^HSI/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 17172.130859
-        },
         {
           "time": "2023-10-24",
           "value": 16991.529297
@@ -60010,15 +59934,11 @@
       "source_url": "https://finance.yahoo.com/quote/000001.SS/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 2983.060059
-        },
         {
           "time": "2023-10-23",
           "value": 2939.291016
@@ -62923,13 +62843,9 @@
       "note": "美国财政部官方日度 10Y 收益率，单位为百分比",
       "status": "ok",
       "stale": false,
-      "last_date": "2026-10-16",
+      "last_date": "2026-10-19",
       "message": null,
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 4.93
-        },
         {
           "time": "2023-10-23",
           "value": 4.86
@@ -65913,6 +65829,10 @@
         {
           "time": "2026-10-16",
           "value": 5.09
+        },
+        {
+          "time": "2026-10-19",
+          "value": 5.15
         }
       ]
     },
@@ -65926,13 +65846,9 @@
       "note": "美国财政部官方日度 10Y 收益率，单位为百分比",
       "status": "ok",
       "stale": false,
-      "last_date": "2026-10-16",
+      "last_date": "2026-10-19",
       "message": null,
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 2.46
-        },
         {
           "time": "2023-10-23",
           "value": 2.45
@@ -68916,6 +68832,10 @@
         {
           "time": "2026-10-16",
           "value": 2.74
+        },
+        {
+          "time": "2026-10-19",
+          "value": 2.8
         }
       ]
     },
@@ -68929,13 +68849,9 @@
       "note": "财政部 10Y 名义减实际收益率，仅取共同日期；非直接下载 FRED T10YIE",
       "status": "ok",
       "stale": false,
-      "last_date": "2026-10-16",
+      "last_date": "2026-10-19",
       "message": null,
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 2.47
-        },
         {
           "time": "2023-10-23",
           "value": 2.41
@@ -71919,6 +71835,10 @@
         {
           "time": "2026-10-16",
           "value": 2.35
+        },
+        {
+          "time": "2026-10-19",
+          "value": 2.35
         }
       ]
     },
@@ -71935,10 +71855,6 @@
       "last_date": "2026-10-09",
       "message": null,
       "data": [
-        {
-          "time": "2023-10-20",
-          "value": 0.6484
-        },
         {
           "time": "2023-10-23",
           "value": 0.6222
@@ -77907,7 +77823,7 @@
   },
   "rate_atlas": {
     "state": "success",
-    "as_of": "2026-10-16",
+    "as_of": "2026-10-19",
     "frequency": "daily with monthly step anchor",
     "anchor": {
       "name": "Cleveland Fed 10Y expected inflation",
@@ -89009,6 +88925,23 @@
         "carried": [
           "kw10y"
         ]
+      },
+      {
+        "time": "2026-10-19",
+        "nominal": 5.15,
+        "real": 2.8,
+        "bei": 2.35,
+        "kw": 1.0729,
+        "expected_inflation": 2.725515,
+        "anchor_date": "2026-10-01",
+        "inflation_risk_premium": -0.375515,
+        "expected_real_rate": 1.351585,
+        "rate_risk_premium": 1.448415,
+        "residual": -0.0,
+        "bei_gap": 0.0,
+        "carried": [
+          "kw10y"
+        ]
       }
     ],
     "cleveland_controls": {
@@ -89308,8 +89241,8 @@
     "checks": {
       "bei_tolerance_bp": 2,
       "residual_tolerance_bp": 2,
-      "latest_bei_gap_bp": -0.0,
-      "latest_residual_bp": 0.0
+      "latest_bei_gap_bp": 0.0,
+      "latest_residual_bp": -0.0
     },
     "sources": {
       "nominal": "FRED DGS10",
@@ -145434,5 +145367,5 @@
       "tbill": "近 14 个日历日净发行≥500 亿美元为强虹吸"
     }
   },
-  "generated_at": "2026-10-19T20:30:52+00:00"
+  "generated_at": "2026-10-20T04:49:11+00:00"
 }
