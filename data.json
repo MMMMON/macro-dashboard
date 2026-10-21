@@ -12,15 +12,11 @@
       "stale_days": 1,
       "source_url": "https://finance.yahoo.com/quote/BTC-USD/",
       "note": "日线复权收盘",
-      "status": "ok",
-      "stale": false,
+      "status": "cached",
+      "stale": true,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-21",
-          "value": 29918.412109
-        },
         {
           "time": "2023-10-22",
           "value": 29993.896484
@@ -4408,15 +4404,11 @@
       "stale_days": 1,
       "source_url": "https://finance.yahoo.com/quote/ETH-USD/",
       "note": "日线复权收盘",
-      "status": "ok",
-      "stale": false,
+      "status": "cached",
+      "stale": true,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
-        {
-          "time": "2023-10-21",
-          "value": 1629.304443
-        },
         {
           "time": "2023-10-22",
           "value": 1663.429932
@@ -8805,10 +8797,10 @@
       "source_url": "https://finance.yahoo.com/quote/CL=F/",
       "note": "日线复权收盘；期货为连续近月合约，换月可能跳变",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -11830,10 +11822,10 @@
       "source_url": "https://finance.yahoo.com/quote/^GSPC/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -14847,10 +14839,10 @@
       "source_url": "https://finance.yahoo.com/quote/QQQ/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -17864,10 +17856,10 @@
       "source_url": "https://finance.yahoo.com/quote/SOXX/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -20881,10 +20873,10 @@
       "source_url": "https://finance.yahoo.com/quote/GC=F/",
       "note": "日线复权收盘；期货为连续近月合约，换月可能跳变",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -23910,10 +23902,10 @@
       "source_url": "https://finance.yahoo.com/quote/DX-Y.NYB/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -26935,10 +26927,10 @@
       "source_url": "https://finance.yahoo.com/quote/AAPL/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -29952,10 +29944,10 @@
       "source_url": "https://finance.yahoo.com/quote/MSFT/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -32969,10 +32961,10 @@
       "source_url": "https://finance.yahoo.com/quote/NVDA/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -35986,10 +35978,10 @@
       "source_url": "https://finance.yahoo.com/quote/AMZN/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -39003,10 +38995,10 @@
       "source_url": "https://finance.yahoo.com/quote/GOOGL/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -42020,10 +42012,10 @@
       "source_url": "https://finance.yahoo.com/quote/META/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -45037,10 +45029,10 @@
       "source_url": "https://finance.yahoo.com/quote/TSLA/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -48054,10 +48046,10 @@
       "source_url": "https://finance.yahoo.com/quote/^IXIC/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -51071,10 +51063,10 @@
       "source_url": "https://finance.yahoo.com/quote/^GDAXI/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -54124,10 +54116,10 @@
       "source_url": "https://finance.yahoo.com/quote/^N225/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -57053,10 +57045,10 @@
       "source_url": "https://finance.yahoo.com/quote/^HSI/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
-      "stale": false,
+      "status": "cached",
+      "stale": true,
       "last_date": "2026-10-16",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-24",
@@ -60006,10 +59998,10 @@
       "source_url": "https://finance.yahoo.com/quote/000001.SS/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-10-19",
-      "message": null,
+      "message": "Yahoo 暂不可用",
       "data": [
         {
           "time": "2023-10-23",
@@ -62919,7 +62911,7 @@
       "note": "美国财政部官方日度 10Y 收益率，单位为百分比",
       "status": "ok",
       "stale": false,
-      "last_date": "2026-10-19",
+      "last_date": "2026-10-20",
       "message": null,
       "data": [
         {
@@ -65909,6 +65901,10 @@
         {
           "time": "2026-10-19",
           "value": 5.15
+        },
+        {
+          "time": "2026-10-20",
+          "value": 5.12
         }
       ]
     },
@@ -65922,7 +65918,7 @@
       "note": "美国财政部官方日度 10Y 收益率，单位为百分比",
       "status": "ok",
       "stale": false,
-      "last_date": "2026-10-19",
+      "last_date": "2026-10-20",
       "message": null,
       "data": [
         {
@@ -68912,6 +68908,10 @@
         {
           "time": "2026-10-19",
           "value": 2.8
+        },
+        {
+          "time": "2026-10-20",
+          "value": 2.77
         }
       ]
     },
@@ -68925,7 +68925,7 @@
       "note": "财政部 10Y 名义减实际收益率，仅取共同日期；非直接下载 FRED T10YIE",
       "status": "ok",
       "stale": false,
-      "last_date": "2026-10-19",
+      "last_date": "2026-10-20",
       "message": null,
       "data": [
         {
@@ -71915,6 +71915,10 @@
         {
           "time": "2026-10-19",
           "value": 2.35
+        },
+        {
+          "time": "2026-10-20",
+          "value": 2.35
         }
       ]
     },
@@ -71927,8 +71931,8 @@
       "source_url": "https://www.federalreserve.gov/data/yield-curve-tables/feds200533.csv",
       "note": "Kim-Wright 三因子无套利期限结构模型；官方日频模型估计，可能修订",
       "status": "ok",
-      "stale": true,
-      "last_date": "2026-10-09",
+      "stale": false,
+      "last_date": "2026-10-16",
       "message": null,
       "data": [
         {
@@ -72013,7 +72017,7 @@
         },
         {
           "time": "2023-11-20",
-          "value": 0.3966
+          "value": 0.3965
         },
         {
           "time": "2023-11-21",
@@ -72077,7 +72081,7 @@
         },
         {
           "time": "2023-12-13",
-          "value": 0.202
+          "value": 0.2019
         },
         {
           "time": "2023-12-14",
@@ -72285,7 +72289,7 @@
         },
         {
           "time": "2024-02-29",
-          "value": 0.3096
+          "value": 0.3095
         },
         {
           "time": "2024-03-01",
@@ -73377,7 +73381,7 @@
         },
         {
           "time": "2025-04-03",
-          "value": 0.4095
+          "value": 0.4094
         },
         {
           "time": "2025-04-04",
@@ -73425,7 +73429,7 @@
         },
         {
           "time": "2025-04-22",
-          "value": 0.5667
+          "value": 0.5668
         },
         {
           "time": "2025-04-23",
@@ -73469,7 +73473,7 @@
         },
         {
           "time": "2025-05-07",
-          "value": 0.4997
+          "value": 0.4996
         },
         {
           "time": "2025-05-08",
@@ -73969,7 +73973,7 @@
         },
         {
           "time": "2025-11-05",
-          "value": 0.5143
+          "value": 0.5144
         },
         {
           "time": "2025-11-06",
@@ -74601,7 +74605,7 @@
         },
         {
           "time": "2026-06-25",
-          "value": 0.6992
+          "value": 0.6991
         },
         {
           "time": "2026-06-26",
@@ -74898,6 +74902,22 @@
         {
           "time": "2026-10-09",
           "value": 1.0729
+        },
+        {
+          "time": "2026-10-13",
+          "value": 1.0589
+        },
+        {
+          "time": "2026-10-14",
+          "value": 1.0459
+        },
+        {
+          "time": "2026-10-15",
+          "value": 1.0039
+        },
+        {
+          "time": "2026-10-16",
+          "value": 0.9857
         }
       ]
     },
@@ -77899,7 +77919,7 @@
   },
   "rate_atlas": {
     "state": "success",
-    "as_of": "2026-10-19",
+    "as_of": "2026-10-20",
     "frequency": "daily with monthly step anchor",
     "anchor": {
       "name": "Cleveland Fed 10Y expected inflation",
@@ -78109,13 +78129,13 @@
         "nominal": 4.42,
         "real": 2.12,
         "bei": 2.3,
-        "kw": 0.3966,
+        "kw": 0.3965,
         "expected_inflation": 2.384114,
         "anchor_date": "2023-11-01",
         "inflation_risk_premium": -0.084114,
-        "expected_real_rate": 1.639286,
-        "rate_risk_premium": 0.480714,
-        "residual": 0.0,
+        "expected_real_rate": 1.639386,
+        "rate_risk_premium": 0.480614,
+        "residual": -0.0,
         "bei_gap": 0.0,
         "carried": []
       },
@@ -78349,13 +78369,13 @@
         "nominal": 4.04,
         "real": 1.88,
         "bei": 2.16,
-        "kw": 0.202,
+        "kw": 0.2019,
         "expected_inflation": 2.27841,
         "anchor_date": "2023-12-01",
         "inflation_risk_premium": -0.11841,
-        "expected_real_rate": 1.55959,
-        "rate_risk_premium": 0.32041,
-        "residual": -0.0,
+        "expected_real_rate": 1.55969,
+        "rate_risk_premium": 0.32031,
+        "residual": 0.0,
         "bei_gap": 0.0,
         "carried": []
       },
@@ -79129,13 +79149,13 @@
         "nominal": 4.25,
         "real": 1.92,
         "bei": 2.33,
-        "kw": 0.3096,
+        "kw": 0.3095,
         "expected_inflation": 2.146201,
         "anchor_date": "2024-02-01",
         "inflation_risk_premium": 0.183799,
-        "expected_real_rate": 1.794199,
-        "rate_risk_premium": 0.125801,
-        "residual": 0.0,
+        "expected_real_rate": 1.794299,
+        "rate_risk_premium": 0.125701,
+        "residual": -0.0,
         "bei_gap": 0.0,
         "carried": []
       },
@@ -83224,12 +83244,12 @@
         "nominal": 4.06,
         "real": 1.78,
         "bei": 2.28,
-        "kw": 0.4095,
+        "kw": 0.4094,
         "expected_inflation": 2.351275,
         "anchor_date": "2025-04-01",
         "inflation_risk_premium": -0.071275,
-        "expected_real_rate": 1.299225,
-        "rate_risk_premium": 0.480775,
+        "expected_real_rate": 1.299325,
+        "rate_risk_premium": 0.480675,
         "residual": 0.0,
         "bei_gap": -0.0,
         "carried": []
@@ -83404,13 +83424,13 @@
         "nominal": 4.41,
         "real": 2.14,
         "bei": 2.27,
-        "kw": 0.5667,
+        "kw": 0.5668,
         "expected_inflation": 2.351275,
         "anchor_date": "2025-04-01",
         "inflation_risk_premium": -0.081275,
-        "expected_real_rate": 1.492025,
-        "rate_risk_premium": 0.647975,
-        "residual": 0.0,
+        "expected_real_rate": 1.491925,
+        "rate_risk_premium": 0.648075,
+        "residual": -0.0,
         "bei_gap": 0.0,
         "carried": []
       },
@@ -83569,13 +83589,13 @@
         "nominal": 4.26,
         "real": 2.01,
         "bei": 2.25,
-        "kw": 0.4997,
+        "kw": 0.4996,
         "expected_inflation": 2.309005,
         "anchor_date": "2025-05-01",
         "inflation_risk_premium": -0.059005,
-        "expected_real_rate": 1.451295,
-        "rate_risk_premium": 0.558705,
-        "residual": -0.0,
+        "expected_real_rate": 1.451395,
+        "rate_risk_premium": 0.558605,
+        "residual": 0.0,
         "bei_gap": 0.0,
         "carried": []
       },
@@ -85444,12 +85464,12 @@
         "nominal": 4.17,
         "real": 1.87,
         "bei": 2.3,
-        "kw": 0.5143,
+        "kw": 0.5144,
         "expected_inflation": 2.30713,
         "anchor_date": "2025-11-01",
         "inflation_risk_premium": -0.00713,
-        "expected_real_rate": 1.34857,
-        "rate_risk_premium": 0.52143,
+        "expected_real_rate": 1.34847,
+        "rate_risk_premium": 0.52153,
         "residual": 0.0,
         "bei_gap": 0.0,
         "carried": []
@@ -87814,12 +87834,12 @@
         "nominal": 4.4,
         "real": 2.19,
         "bei": 2.21,
-        "kw": 0.6992,
+        "kw": 0.6991,
         "expected_inflation": 2.465424,
         "anchor_date": "2026-06-01",
         "inflation_risk_premium": -0.255424,
-        "expected_real_rate": 1.235376,
-        "rate_risk_premium": 0.954624,
+        "expected_real_rate": 1.235476,
+        "rate_risk_premium": 0.954524,
         "residual": -0.0,
         "bei_gap": 0.0,
         "carried": []
@@ -88939,46 +88959,72 @@
         "nominal": 5.21,
         "real": 2.88,
         "bei": 2.33,
-        "kw": 1.0729,
+        "kw": 1.0589,
         "expected_inflation": 2.725515,
         "anchor_date": "2026-10-01",
         "inflation_risk_premium": -0.395515,
-        "expected_real_rate": 1.411585,
-        "rate_risk_premium": 1.468415,
-        "residual": -0.0,
+        "expected_real_rate": 1.425585,
+        "rate_risk_premium": 1.454415,
+        "residual": 0.0,
         "bei_gap": 0.0,
-        "carried": [
-          "kw10y"
-        ]
+        "carried": []
       },
       {
         "time": "2026-10-14",
         "nominal": 5.19,
         "real": 2.84,
         "bei": 2.35,
-        "kw": 1.0729,
+        "kw": 1.0459,
         "expected_inflation": 2.725515,
         "anchor_date": "2026-10-01",
         "inflation_risk_premium": -0.375515,
-        "expected_real_rate": 1.391585,
-        "rate_risk_premium": 1.448415,
-        "residual": -0.0,
+        "expected_real_rate": 1.418585,
+        "rate_risk_premium": 1.421415,
+        "residual": 0.0,
         "bei_gap": 0.0,
-        "carried": [
-          "kw10y"
-        ]
+        "carried": []
       },
       {
         "time": "2026-10-15",
         "nominal": 5.1,
         "real": 2.78,
         "bei": 2.32,
-        "kw": 1.0729,
+        "kw": 1.0039,
         "expected_inflation": 2.725515,
         "anchor_date": "2026-10-01",
         "inflation_risk_premium": -0.405515,
-        "expected_real_rate": 1.301585,
-        "rate_risk_premium": 1.478415,
+        "expected_real_rate": 1.370585,
+        "rate_risk_premium": 1.409415,
+        "residual": -0.0,
+        "bei_gap": 0.0,
+        "carried": []
+      },
+      {
+        "time": "2026-10-16",
+        "nominal": 5.09,
+        "real": 2.74,
+        "bei": 2.35,
+        "kw": 0.9857,
+        "expected_inflation": 2.725515,
+        "anchor_date": "2026-10-01",
+        "inflation_risk_premium": -0.375515,
+        "expected_real_rate": 1.378785,
+        "rate_risk_premium": 1.361215,
+        "residual": 0.0,
+        "bei_gap": -0.0,
+        "carried": []
+      },
+      {
+        "time": "2026-10-19",
+        "nominal": 5.15,
+        "real": 2.8,
+        "bei": 2.35,
+        "kw": 0.9857,
+        "expected_inflation": 2.725515,
+        "anchor_date": "2026-10-01",
+        "inflation_risk_premium": -0.375515,
+        "expected_real_rate": 1.438785,
+        "rate_risk_premium": 1.361215,
         "residual": -0.0,
         "bei_gap": 0.0,
         "carried": [
@@ -88986,34 +89032,17 @@
         ]
       },
       {
-        "time": "2026-10-16",
-        "nominal": 5.09,
-        "real": 2.74,
+        "time": "2026-10-20",
+        "nominal": 5.12,
+        "real": 2.77,
         "bei": 2.35,
-        "kw": 1.0729,
+        "kw": 0.9857,
         "expected_inflation": 2.725515,
         "anchor_date": "2026-10-01",
         "inflation_risk_premium": -0.375515,
-        "expected_real_rate": 1.291585,
-        "rate_risk_premium": 1.448415,
+        "expected_real_rate": 1.408785,
+        "rate_risk_premium": 1.361215,
         "residual": 0.0,
-        "bei_gap": -0.0,
-        "carried": [
-          "kw10y"
-        ]
-      },
-      {
-        "time": "2026-10-19",
-        "nominal": 5.15,
-        "real": 2.8,
-        "bei": 2.35,
-        "kw": 1.0729,
-        "expected_inflation": 2.725515,
-        "anchor_date": "2026-10-01",
-        "inflation_risk_premium": -0.375515,
-        "expected_real_rate": 1.351585,
-        "rate_risk_premium": 1.448415,
-        "residual": -0.0,
         "bei_gap": 0.0,
         "carried": [
           "kw10y"
@@ -89318,7 +89347,7 @@
       "bei_tolerance_bp": 2,
       "residual_tolerance_bp": 2,
       "latest_bei_gap_bp": 0.0,
-      "latest_residual_bp": -0.0
+      "latest_residual_bp": 0.0
     },
     "sources": {
       "nominal": "FRED DGS10",
@@ -158871,5 +158900,5 @@
       "tbill": "近 14 个日历日净发行≥500 亿美元为强虹吸"
     }
   },
-  "generated_at": "2026-10-20T19:04:02+00:00"
+  "generated_at": "2026-10-21T04:45:01+00:00"
 }
