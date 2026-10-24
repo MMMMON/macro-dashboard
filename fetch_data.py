@@ -974,15 +974,19 @@ def main():
             points, error = scale_points(fetch_fred_series(symbol, start, end), scale), None
         except Exception as exc:
             points, error = [], f"FRED 暂不可用（{type(exc).__name__}）"
-        if not points and key in TREASURY_RATE_FIELDS:
+        if key in TREASURY_RATE_FIELDS:
             if not treasury_attempted:
                 treasury_attempted = True
                 try:
                     treasury = fetch_treasury_rates(start, end)
                 except Exception as exc:
                     print(f"::warning::Treasury liquidity fallback failed ({type(exc).__name__})")
-            points = treasury.get(key, [])
-            from_treasury = bool(points)
+            treasury_points = treasury.get(key, [])
+            # Keep each history on one official source. Prefer Treasury only
+            # when FRED is unavailable or its latest published day is older.
+            if treasury_points and (not points or treasury_points[-1]["time"] > points[-1]["time"]):
+                points = treasury_points
+                from_treasury = True
             if from_treasury:
                 error = None
         meta = {

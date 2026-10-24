@@ -90180,9 +90180,9 @@
           "on_rrp": 0.0002,
           "reserves": 2.962607,
           "curve_2s10s": 31.0,
-          "tips_10y": 2.64,
-          "real5y": 2.33,
-          "real30y": 3.05,
+          "tips_10y": 2.66,
+          "real5y": 2.34,
+          "real30y": 3.08,
           "breakeven5y": 2.48,
           "inflation5y5y": 2.2,
           "sofr": 3.9,
@@ -90191,10 +90191,10 @@
           "discount_rate": 4.0,
           "tga": 0.945153,
           "srf": 0.0,
-          "dgs2": 4.65,
-          "dgs5": 4.78,
-          "dgs10": 4.96,
-          "dgs30": 5.29,
+          "dgs2": 4.69,
+          "dgs5": 4.82,
+          "dgs10": 5.0,
+          "dgs30": 5.33,
           "term_sofr_1m": null,
           "term_sofr_3m": null,
           "term_sofr_6m": null,
@@ -96930,16 +96930,16 @@
       },
       "tips_10y": {
         "name": "10Y TIPS",
-        "symbol": "DFII10",
+        "symbol": "TC_10YEAR",
         "unit": "%",
         "frequency": "daily",
-        "source": "FRED",
-        "source_url": "https://fred.stlouisfed.org/series/DFII10",
+        "source": "美国财政部 / U.S. Treasury",
+        "source_url": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
         "proxy": false,
-        "note": "最近有效交易日值",
+        "note": "美国财政部官方日度实际收益率，单位为百分比",
         "status": "ok",
         "stale": false,
-        "last_date": "2026-10-22",
+        "last_date": "2026-10-23",
         "message": null,
         "data": [
           {
@@ -99933,21 +99933,25 @@
           {
             "time": "2026-10-22",
             "value": 2.64
+          },
+          {
+            "time": "2026-10-23",
+            "value": 2.66
           }
         ]
       },
       "real5y": {
         "name": "美国 5Y 实际利率",
-        "symbol": "DFII5",
+        "symbol": "TC_5YEAR",
         "unit": "%",
         "frequency": "daily",
-        "source": "FRED",
-        "source_url": "https://fred.stlouisfed.org/series/DFII5",
+        "source": "美国财政部 / U.S. Treasury",
+        "source_url": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
         "proxy": false,
-        "note": "最近有效交易日值",
+        "note": "美国财政部官方日度实际收益率，单位为百分比",
         "status": "ok",
         "stale": false,
-        "last_date": "2026-10-22",
+        "last_date": "2026-10-23",
         "message": null,
         "data": [
           {
@@ -102941,21 +102945,25 @@
           {
             "time": "2026-10-22",
             "value": 2.33
+          },
+          {
+            "time": "2026-10-23",
+            "value": 2.34
           }
         ]
       },
       "real30y": {
         "name": "美国 30Y 实际利率",
-        "symbol": "DFII30",
+        "symbol": "TC_30YEAR",
         "unit": "%",
         "frequency": "daily",
-        "source": "FRED",
-        "source_url": "https://fred.stlouisfed.org/series/DFII30",
+        "source": "美国财政部 / U.S. Treasury",
+        "source_url": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
         "proxy": false,
-        "note": "最近有效交易日值",
+        "note": "美国财政部官方日度实际收益率，单位为百分比",
         "status": "ok",
         "stale": false,
-        "last_date": "2026-10-22",
+        "last_date": "2026-10-23",
         "message": null,
         "data": [
           {
@@ -105949,6 +105957,10 @@
           {
             "time": "2026-10-22",
             "value": 3.05
+          },
+          {
+            "time": "2026-10-23",
+            "value": 3.08
           }
         ]
       },
@@ -129826,16 +129838,16 @@
       },
       "dgs2": {
         "name": "美国 2Y 国债收益率",
-        "symbol": "DGS2",
+        "symbol": "BC_2YEAR",
         "unit": "%",
         "frequency": "daily",
-        "source": "FRED",
-        "source_url": "https://fred.stlouisfed.org/series/DGS2",
+        "source": "美国财政部 / U.S. Treasury",
+        "source_url": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
         "proxy": false,
-        "note": "最近有效交易日值",
+        "note": "美国财政部官方日度名义收益率，单位为百分比",
         "status": "ok",
         "stale": false,
-        "last_date": "2026-10-22",
+        "last_date": "2026-10-23",
         "message": null,
         "data": [
           {
@@ -132829,21 +132841,25 @@
           {
             "time": "2026-10-22",
             "value": 4.65
+          },
+          {
+            "time": "2026-10-23",
+            "value": 4.69
           }
         ]
       },
       "dgs5": {
         "name": "美国 5Y 国债收益率",
-        "symbol": "DGS5",
+        "symbol": "BC_5YEAR",
         "unit": "%",
         "frequency": "daily",
-        "source": "FRED",
-        "source_url": "https://fred.stlouisfed.org/series/DGS5",
+        "source": "美国财政部 / U.S. Treasury",
+        "source_url": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
         "proxy": false,
-        "note": "最近有效交易日值",
+        "note": "美国财政部官方日度名义收益率，单位为百分比",
         "status": "ok",
         "stale": false,
-        "last_date": "2026-10-22",
+        "last_date": "2026-10-23",
         "message": null,
         "data": [
           {
@@ -135837,21 +135853,25 @@
           {
             "time": "2026-10-22",
             "value": 4.78
+          },
+          {
+            "time": "2026-10-23",
+            "value": 4.82
           }
         ]
       },
       "dgs10": {
         "name": "美国 10Y 国债收益率",
-        "symbol": "DGS10",
+        "symbol": "BC_10YEAR",
         "unit": "%",
         "frequency": "daily",
-        "source": "FRED",
-        "source_url": "https://fred.stlouisfed.org/series/DGS10",
+        "source": "美国财政部 / U.S. Treasury",
+        "source_url": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
         "proxy": false,
-        "note": "最近有效交易日值",
+        "note": "美国财政部官方日度名义收益率，单位为百分比",
         "status": "ok",
         "stale": false,
-        "last_date": "2026-10-22",
+        "last_date": "2026-10-23",
         "message": null,
         "data": [
           {
@@ -138845,21 +138865,25 @@
           {
             "time": "2026-10-22",
             "value": 4.96
+          },
+          {
+            "time": "2026-10-23",
+            "value": 5.0
           }
         ]
       },
       "dgs30": {
         "name": "美国 30Y 国债收益率",
-        "symbol": "DGS30",
+        "symbol": "BC_30YEAR",
         "unit": "%",
         "frequency": "daily",
-        "source": "FRED",
-        "source_url": "https://fred.stlouisfed.org/series/DGS30",
+        "source": "美国财政部 / U.S. Treasury",
+        "source_url": "https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
         "proxy": false,
-        "note": "最近有效交易日值",
+        "note": "美国财政部官方日度名义收益率，单位为百分比",
         "status": "ok",
         "stale": false,
-        "last_date": "2026-10-22",
+        "last_date": "2026-10-23",
         "message": null,
         "data": [
           {
@@ -141853,6 +141877,10 @@
           {
             "time": "2026-10-22",
             "value": 5.29
+          },
+          {
+            "time": "2026-10-23",
+            "value": 5.33
           }
         ]
       },
@@ -178032,5 +178060,5 @@
       "tbill": "近 14 个日历日净发行≥500 亿美元为强虹吸"
     }
   },
-  "generated_at": "2026-10-24T11:16:19+00:00"
+  "generated_at": "2026-10-24T11:16:46+00:00"
 }
