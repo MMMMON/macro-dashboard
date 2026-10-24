@@ -22,6 +22,17 @@ from urllib3.util.retry import Retry
 
 ROOT = Path(__file__).resolve().parent
 TREASURY_URL = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml"
+TREASURY_RATE_FIELDS = {
+    "dgs2": ("daily_treasury_yield_curve", "BC_2YEAR"),
+    "dgs5": ("daily_treasury_yield_curve", "BC_5YEAR"),
+    "us10y": ("daily_treasury_yield_curve", "BC_10YEAR"),
+    "dgs10": ("daily_treasury_yield_curve", "BC_10YEAR"),
+    "dgs30": ("daily_treasury_yield_curve", "BC_30YEAR"),
+    "real5y": ("daily_treasury_real_yield_curve", "TC_5YEAR"),
+    "real10y": ("daily_treasury_real_yield_curve", "TC_10YEAR"),
+    "tips_10y": ("daily_treasury_real_yield_curve", "TC_10YEAR"),
+    "real30y": ("daily_treasury_real_yield_curve", "TC_30YEAR"),
+}
 YAHOO = {
     "btc": ("BTC-USD", "Bitcoin", "USD"),
     "eth": ("ETH-USD", "Ethereum", "USD"),
@@ -337,9 +348,8 @@ def breakeven_points(nominal, real):
 
 def fetch_treasury_rates(start, end):
     """Official keyless Treasury rates; replace whole histories, never splice sources."""
-    tasks = [(kind, field, year) for kind, field in [
-        ("daily_treasury_yield_curve", "BC_10YEAR"),
-        ("daily_treasury_real_yield_curve", "TC_10YEAR")]
+    source_fields = sorted(set(TREASURY_RATE_FIELDS.values()))
+    tasks = [(kind, field, year) for kind, field in source_fields
         for year in range(start.year, (end - timedelta(days=1)).year + 1)]
 
     def fetch_year(task):
@@ -355,14 +365,16 @@ def fetch_treasury_rates(start, end):
                 raise RuntimeError(f"Treasury {year} returned no observations")
             return field, points
 
-    grouped = {"BC_10YEAR": [], "TC_10YEAR": []}
+    grouped = {field: [] for _, field in source_fields}
     with ThreadPoolExecutor(max_workers=4) as pool:
         for field, points in pool.map(fetch_year, tasks):
             grouped[field].extend(points)
-    nominal, real = [clean_points(((p["time"], p["value"]) for p in grouped[field]), start, end)
-                     for field in ["BC_10YEAR", "TC_10YEAR"]]
-    return {"us10y": nominal, "real10y": real,
-            "breakeven10y": breakeven_points(nominal, real)}
+    result = {
+        key: clean_points(((p["time"], p["value"]) for p in grouped[field]), start, end)
+        for key, (_, field) in TREASURY_RATE_FIELDS.items()
+    }
+    result["breakeven10y"] = breakeven_points(result["us10y"], result["real10y"])
+    return result
 
 
 def fetch_china10y(start: date, end: date):
@@ -957,11 +969,23 @@ def main():
     liquidity_series = {}
     print("Fetching dollar liquidity PQG inputs...", flush=True)
     for key, (symbol, name, unit, scale) in LIQUIDITY_FRED.items():
+        from_treasury = False
         try:
             points, error = scale_points(fetch_fred_series(symbol, start, end), scale), None
         except Exception as exc:
             points, error = [], f"FRED 暂不可用（{type(exc).__name__}）"
-        liquidity_series[key] = make_series({
+        if not points and key in TREASURY_RATE_FIELDS:
+            if not treasury_attempted:
+                treasury_attempted = True
+                try:
+                    treasury = fetch_treasury_rates(start, end)
+                except Exception as exc:
+                    print(f"::warning::Treasury liquidity fallback failed ({type(exc).__name__})")
+            points = treasury.get(key, [])
+            from_treasury = bool(points)
+            if from_treasury:
+                error = None
+        meta = {
             "name": name, "symbol": symbol, "unit": unit,
             "frequency": "weekly" if key in {"reserves", "fed_assets", "tga"} else "daily",
             "source": "FRED", "source_url": f"https://fred.stlouisfed.org/series/{symbol}",
@@ -973,7 +997,19 @@ def main():
                 "Fed 临时回购余额，作为 SRF 工具响应代理；不把设定利率当使用量" if key == "srf" else
                 "最近有效交易日值"
             ),
-        }, points, liquidity_old.get(key, {}), start, end, error or "FRED 无有效观测")
+        }
+        if from_treasury:
+            _, treasury_field = TREASURY_RATE_FIELDS[key]
+            meta.update(
+                symbol=treasury_field,
+                source="美国财政部 / U.S. Treasury",
+                source_url="https://home.treasury.gov/treasury-daily-interest-rate-xml-feed",
+                note="美国财政部官方日度实际收益率，单位为百分比" if treasury_field.startswith("TC_")
+                else "美国财政部官方日度名义收益率，单位为百分比",
+            )
+        liquidity_series[key] = make_series(
+            meta, points, liquidity_old.get(key, {}), start, end,
+            error or "FRED 与美国财政部均无有效观测")
 
     term_old_dates = [item.get("last_date") for key, item in liquidity_old.items()
                       if key in CME_TERM_SOFR and item.get("last_date")]

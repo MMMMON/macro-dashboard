@@ -98,6 +98,12 @@ class SnapshotTests(unittest.TestCase):
         <m:properties><d:NEW_DATE>2026-01-29T00:00:00</d:NEW_DATE><d:TC_10YEAR m:null="true"/></m:properties></feed>'''
         self.assertEqual(feed.parse_treasury_xml(document, "TC_10YEAR", self.start, self.end), self.points[:1])
 
+    def test_treasury_fallback_covers_liquidity_rate_panels(self):
+        expected = {"dgs2", "dgs5", "dgs10", "dgs30", "real5y", "tips_10y", "real30y"}
+        self.assertTrue(expected.issubset(feed.TREASURY_RATE_FIELDS))
+        self.assertEqual(feed.TREASURY_RATE_FIELDS["tips_10y"],
+                         ("daily_treasury_real_yield_curve", "TC_10YEAR"))
+
     def test_staleness(self):
         result = feed.make_series(self.meta, [{"time": "2026-01-01", "value": -0.1}], {}, self.start, self.end)
         self.assertTrue(result["stale"])
@@ -129,6 +135,7 @@ class SnapshotTests(unittest.TestCase):
             with patch('sys.argv', ['fetch_data.py', '--output', str(path)]), \
                  patch.object(feed, 'fetch_yahoo', return_value={}), \
                  patch.object(feed, 'fetch_treasury_rates', return_value={}), \
+                 patch.object(feed, 'fetch_kw_official', side_effect=RuntimeError), \
                  patch.object(feed, 'fetch_fred_series', side_effect=RuntimeError), \
                  patch.object(feed, 'fetch_ofr_series', side_effect=RuntimeError), \
                  patch.object(feed, 'fetch_tbill_events', side_effect=RuntimeError), \
