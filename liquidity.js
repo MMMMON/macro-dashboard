@@ -6,6 +6,11 @@ const $ = id => document.getElementById(id);
 const nf = (value, digits = 2) => Number.isFinite(value) ? new Intl.NumberFormat('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(value) : '—';
 const COLORS = { q: '#315f8a', g: '#24756f', p: '#9d2933', gold: '#a97513', gray: '#776f67', ink: '#25211d' };
 const RANGE_DAYS = { '1M': 31, '3M': 93, '6M': 186, '1Y': 366, ALL: Infinity };
+const OIS_TERMS = [
+  { key: 'ois_1m', label: '1M' }, { key: 'ois_3m', label: '3M' }, { key: 'ois_6m', label: '6M' },
+  { key: 'ois_1y', label: '1Y' }, { key: 'ois_2y', label: '2Y' }, { key: 'ois_10y', label: '10Y' },
+  { key: 'ois_30y', label: '30Y' },
+];
 let liquidity; let currentRange = '6M'; const chartViews = [];
 
 function el(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
@@ -184,6 +189,89 @@ function createChart(container, panel, d) {
   return { chart, created, panel, container };
 }
 
+function oisCurveSnapshots() {
+  const maps = OIS_TERMS.map(term => new Map(series(term.key).map(point => [point.time, point.value])));
+  if (maps.some(map => !map.size)) return [];
+  const commonDates = [...maps[0].keys()].filter(date => maps.slice(1).every(map => map.has(date))).sort();
+  if (!commonDates.length) return [];
+  const latestDate = commonDates.at(-1);
+  const latestTime = Date.parse(`${latestDate}T00:00:00Z`);
+  const definitions = [
+    { label: '最新', offset: 0, color: '#9d2933' },
+    { label: '一周前', offset: 7, color: '#315f8a' },
+    { label: '一个月前', offset: 30, color: '#a97513' },
+  ];
+  return definitions.map(definition => {
+    const target = latestTime - definition.offset * 86400000;
+    const date = [...commonDates].reverse().find(item => Date.parse(`${item}T00:00:00Z`) <= target);
+    return date ? { ...definition, date, values: maps.map(map => map.get(date)) } : null;
+  }).filter(Boolean);
+}
+
+function renderOisTermStructures(container) {
+  const snapshots = oisCurveSnapshots();
+  const section = el('section', 'ois-term-structures');
+  const heading = el('div', 'ois-term-heading');
+  heading.append(el('div', '', '期限结构截面'), el('span', '', '横坐标：期限 · 纵坐标：OIS（%）· 三图共用尺度'));
+  section.append(heading);
+  if (!snapshots.length) {
+    section.append(el('p', 'ois-history-status', '共同观测日不足，暂时无法生成期限结构截面。'));
+    container.append(section);
+    return;
+  }
+  const allValues = snapshots.flatMap(item => item.values);
+  const rawMin = Math.min(...allValues); const rawMax = Math.max(...allValues);
+  const padding = Math.max((rawMax - rawMin) * .14, .05);
+  const yMin = rawMin - padding; const yMax = rawMax + padding;
+  const grid = el('div', 'ois-term-grid');
+  snapshots.forEach(snapshot => {
+    const card = el('article', 'ois-term-card');
+    const title = el('div', 'ois-term-card-title');
+    title.append(el('strong', '', snapshot.label), el('span', '', snapshot.date));
+    const chartWrap = el('div', 'ois-term-chart');
+    const tooltip = el('div', 'ois-term-tooltip'); tooltip.hidden = true;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 360 190'); svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', `${snapshot.label} ${snapshot.date} 美国 OIS 期限结构`);
+    const left = 39, right = 14, top = 15, bottom = 32, width = 360 - left - right, height = 190 - top - bottom;
+    const x = index => left + width * index / (OIS_TERMS.length - 1);
+    const y = value => top + (yMax - value) / (yMax - yMin) * height;
+    const addSvg = (tag, attributes, text) => {
+      const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+      if (text !== undefined) node.textContent = text;
+      svg.append(node); return node;
+    };
+    [0, .5, 1].forEach(ratio => {
+      const value = yMax - (yMax - yMin) * ratio; const py = top + height * ratio;
+      addSvg('line', { x1: left, y1: py, x2: left + width, y2: py, class: 'ois-term-gridline' });
+      addSvg('text', { x: left - 7, y: py + 4, class: 'ois-term-y-label', 'text-anchor': 'end' }, nf(value, 2));
+    });
+    const path = snapshot.values.map((value, index) => `${index ? 'L' : 'M'} ${x(index)} ${y(value)}`).join(' ');
+    addSvg('path', { d: path, class: 'ois-term-line', stroke: snapshot.color });
+    snapshot.values.forEach((value, index) => {
+      addSvg('text', { x: x(index), y: 181, class: 'ois-term-x-label', 'text-anchor': 'middle' }, OIS_TERMS[index].label);
+      const point = addSvg('circle', { cx: x(index), cy: y(value), r: 4.5, class: 'ois-term-point', fill: snapshot.color, tabindex: '0' });
+      const show = event => {
+        tooltip.hidden = false;
+        tooltip.textContent = `${OIS_TERMS[index].label} · ${nf(value, 3)}%`;
+        const bounds = chartWrap.getBoundingClientRect(); const source = event.touches?.[0] || event;
+        const pointerEvent = event.type.startsWith('pointer') && Number.isFinite(source.clientX) && Number.isFinite(source.clientY);
+        const clientX = pointerEvent ? source.clientX : bounds.left + x(index) / 360 * bounds.width;
+        const clientY = pointerEvent ? source.clientY : bounds.top + y(value) / 190 * bounds.height;
+        tooltip.style.left = `${Math.min(Math.max(clientX - bounds.left, 50), bounds.width - 50)}px`;
+        tooltip.style.top = `${Math.max(clientY - bounds.top - 38, 4)}px`;
+      };
+      point.addEventListener('pointerenter', show); point.addEventListener('pointermove', show);
+      point.addEventListener('focus', show); point.addEventListener('pointerleave', () => { tooltip.hidden = true; });
+      point.addEventListener('blur', () => { tooltip.hidden = true; });
+    });
+    chartWrap.append(svg, tooltip); card.append(title, chartWrap); grid.append(card);
+  });
+  section.append(grid, el('p', 'ois-term-note', `共同观测日口径 · 最新截面 ${snapshots[0].date}；一周前和一个月前均取目标日之前最近的完整观测。`));
+  container.append(section);
+}
+
 function lastReading(panel, d) { const available = panel.lines(d).filter(line => line.data.length).map(line => `${line.name} ${nf(line.data.at(-1).value, line.name.includes('bp') || panel.unit === '基点' ? 1 : 3)}（${line.data.at(-1).time}）`); if (!available.length) return '数据不足，等待下一次有效更新。'; if (panel.id === 'q-buffer' && d.rrpBuffer.length) { const point = d.rrpBuffer.at(-1); return `${available.slice(0, 3).join(' · ')}。海绵判定：${point.value > 0 ? '正值，缓冲仍在' : '零或负值，缓冲不足'}。`; } return available.slice(0, 3).join(' · '); }
 function firstLayerReading(d) {
   if (!d.firstLayer) return { state: 'pending', text: '数据不足：直接 OIS 或 CME Term SOFR 代理与 10Y 实际利率尚无同一窗口的 21 个新鲜共同观测，暂不能计算 20 个交易日变化。' };
@@ -197,7 +285,7 @@ function renderDashboard(d) {
   chartViews.forEach(view => view.chart?.remove());
   const root = $('dashboard-sections'); root.replaceChildren(); chartViews.length = 0;
   PANELS.forEach(group => { const section = el('section', `factor-section factor-${group.section}`); const head = el('div', 'factor-heading'); head.append(el('span', 'factor-icon large', group.icon), el('div')); head.lastChild.append(el('p', 'eyebrow', `LAYER / ${group.section.toUpperCase()}`), el('h2', '', group.title), el('p', '', group.intro)); section.append(head);
-    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const point = latest(line.data); const item = el('span', '', point ? `${line.name} ${nf(point.value, panel.unit === '基点' ? 1 : 3)} · ${point.time}` : `${line.name} · 暂无数据`); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what)); if (panel.reference) explainer.append(referenceLink(panel.reference)); explainer.append(explanation('怎么看', panel.how)); if (panel.id === 'q-corridor') explainer.append(rateCorridorGuide()); if (panel.id === 'p-ois') { const verdict = firstLayerReading(d); const row = explanation('第一层判定', verdict.text); row.className = `layer-verdict ${verdict.state}`; explainer.append(row); } explainer.append(explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
+    group.panels.forEach(panel => { const article = el('article', 'explain-panel'); const visual = el('div', 'panel-visual'); const heading = el('div', 'panel-title'); heading.append(el('div', '', panel.title), el('span', '', panel.unit)); const legend = el('div', 'panel-legend'); panel.lines(d).forEach(line => { const point = latest(line.data); const item = el('span', '', point ? `${line.name} ${nf(point.value, panel.unit === '基点' ? 1 : 3)} · ${point.time}` : `${line.name} · 暂无数据`); item.style.setProperty('--series-color', line.color); legend.append(item); }); const plot = el('div', 'explain-plot'); visual.append(heading, legend, plot); if (panel.id === 'p-ois') renderOisTermStructures(visual); const explainer = el('aside', 'chart-explainer'); explainer.append(el('h3', '', '读图说明'), explanation('是什么', panel.what)); if (panel.reference) explainer.append(referenceLink(panel.reference)); explainer.append(explanation('怎么看', panel.how)); if (panel.id === 'q-corridor') explainer.append(rateCorridorGuide()); if (panel.id === 'p-ois') { const verdict = firstLayerReading(d); const row = explanation('第一层判定', verdict.text); row.className = `layer-verdict ${verdict.state}`; explainer.append(row); } explainer.append(explanation('本次变化', lastReading(panel, d)), explanation('不能据此认定', panel.mistake), formula(panel)); article.append(visual, explainer); section.append(article); chartViews.push(createChart(plot, panel, d)); }); root.append(section); });
   applyRange();
   // Charts mount in detached panels; wait for autoSize before setting the date window.
   requestAnimationFrame(() => requestAnimationFrame(applyRange));
