@@ -212,7 +212,7 @@ function renderOisTermStructures(container) {
   const snapshots = oisCurveSnapshots();
   const section = el('section', 'ois-term-structures');
   const heading = el('div', 'ois-term-heading');
-  heading.append(el('div', '', '期限结构截面'), el('span', '', '横坐标：期限 · 纵坐标：OIS（%）· 三图共用尺度'));
+  heading.append(el('div', '', '期限结构截面'), el('span', '', '横坐标：期限 · 纵坐标：OIS（%）· 三期共用尺度'));
   section.append(heading);
   if (!snapshots.length) {
     section.append(el('p', 'ois-history-status', '共同观测日不足，暂时无法生成期限结构截面。'));
@@ -223,52 +223,54 @@ function renderOisTermStructures(container) {
   const rawMin = Math.min(...allValues); const rawMax = Math.max(...allValues);
   const padding = Math.max((rawMax - rawMin) * .14, .05);
   const yMin = rawMin - padding; const yMax = rawMax + padding;
-  const grid = el('div', 'ois-term-grid');
+  const card = el('article', 'ois-term-card');
+  const legend = el('div', 'ois-term-legend');
   snapshots.forEach(snapshot => {
-    const card = el('article', 'ois-term-card');
-    const title = el('div', 'ois-term-card-title');
-    title.append(el('strong', '', snapshot.label), el('span', '', snapshot.date));
-    const chartWrap = el('div', 'ois-term-chart');
-    const tooltip = el('div', 'ois-term-tooltip'); tooltip.hidden = true;
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('viewBox', '0 0 360 190'); svg.setAttribute('role', 'img');
-    svg.setAttribute('aria-label', `${snapshot.label} ${snapshot.date} 美国 OIS 期限结构`);
-    const left = 39, right = 14, top = 15, bottom = 32, width = 360 - left - right, height = 190 - top - bottom;
-    const x = index => left + width * index / (OIS_TERMS.length - 1);
-    const y = value => top + (yMax - value) / (yMax - yMin) * height;
-    const addSvg = (tag, attributes, text) => {
-      const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
-      Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
-      if (text !== undefined) node.textContent = text;
-      svg.append(node); return node;
-    };
-    [0, .5, 1].forEach(ratio => {
-      const value = yMax - (yMax - yMin) * ratio; const py = top + height * ratio;
-      addSvg('line', { x1: left, y1: py, x2: left + width, y2: py, class: 'ois-term-gridline' });
-      addSvg('text', { x: left - 7, y: py + 4, class: 'ois-term-y-label', 'text-anchor': 'end' }, nf(value, 2));
-    });
+    const item = el('span'); item.style.setProperty('--series-color', snapshot.color);
+    item.append(el('strong', '', snapshot.label), el('small', '', snapshot.date)); legend.append(item);
+  });
+  const chartWrap = el('div', 'ois-term-chart');
+  const tooltip = el('div', 'ois-term-tooltip'); tooltip.hidden = true;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 720 250'); svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label', snapshots.map(snapshot => `${snapshot.label} ${snapshot.date}`).join('、') + ' 美国 OIS 期限结构对比');
+  const left = 48, right = 18, top = 18, bottom = 36, width = 720 - left - right, height = 250 - top - bottom;
+  const x = index => left + width * index / (OIS_TERMS.length - 1);
+  const y = value => top + (yMax - value) / (yMax - yMin) * height;
+  const addSvg = (tag, attributes, text) => {
+    const node = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    Object.entries(attributes).forEach(([key, value]) => node.setAttribute(key, value));
+    if (text !== undefined) node.textContent = text;
+    svg.append(node); return node;
+  };
+  [0, .5, 1].forEach(ratio => {
+    const value = yMax - (yMax - yMin) * ratio; const py = top + height * ratio;
+    addSvg('line', { x1: left, y1: py, x2: left + width, y2: py, class: 'ois-term-gridline' });
+    addSvg('text', { x: left - 9, y: py + 4, class: 'ois-term-y-label', 'text-anchor': 'end' }, nf(value, 2));
+  });
+  OIS_TERMS.forEach((term, index) => addSvg('text', { x: x(index), y: 241, class: 'ois-term-x-label', 'text-anchor': 'middle' }, term.label));
+  snapshots.forEach(snapshot => {
     const path = snapshot.values.map((value, index) => `${index ? 'L' : 'M'} ${x(index)} ${y(value)}`).join(' ');
     addSvg('path', { d: path, class: 'ois-term-line', stroke: snapshot.color });
     snapshot.values.forEach((value, index) => {
-      addSvg('text', { x: x(index), y: 181, class: 'ois-term-x-label', 'text-anchor': 'middle' }, OIS_TERMS[index].label);
       const point = addSvg('circle', { cx: x(index), cy: y(value), r: 4.5, class: 'ois-term-point', fill: snapshot.color, tabindex: '0' });
       const show = event => {
         tooltip.hidden = false;
-        tooltip.textContent = `${OIS_TERMS[index].label} · ${nf(value, 3)}%`;
+        tooltip.textContent = `${snapshot.label} · ${snapshot.date} · ${OIS_TERMS[index].label} · ${nf(value, 3)}%`;
         const bounds = chartWrap.getBoundingClientRect(); const source = event.touches?.[0] || event;
         const pointerEvent = event.type.startsWith('pointer') && Number.isFinite(source.clientX) && Number.isFinite(source.clientY);
-        const clientX = pointerEvent ? source.clientX : bounds.left + x(index) / 360 * bounds.width;
-        const clientY = pointerEvent ? source.clientY : bounds.top + y(value) / 190 * bounds.height;
-        tooltip.style.left = `${Math.min(Math.max(clientX - bounds.left, 50), bounds.width - 50)}px`;
+        const clientX = pointerEvent ? source.clientX : bounds.left + x(index) / 720 * bounds.width;
+        const clientY = pointerEvent ? source.clientY : bounds.top + y(value) / 250 * bounds.height;
+        tooltip.style.left = `${Math.min(Math.max(clientX - bounds.left, 100), bounds.width - 100)}px`;
         tooltip.style.top = `${Math.max(clientY - bounds.top - 38, 4)}px`;
       };
       point.addEventListener('pointerenter', show); point.addEventListener('pointermove', show);
       point.addEventListener('focus', show); point.addEventListener('pointerleave', () => { tooltip.hidden = true; });
       point.addEventListener('blur', () => { tooltip.hidden = true; });
     });
-    chartWrap.append(svg, tooltip); card.append(title, chartWrap); grid.append(card);
   });
-  section.append(grid, el('p', 'ois-term-note', `共同观测日口径 · 最新截面 ${snapshots[0].date}；一周前和一个月前均取目标日之前最近的完整观测。`));
+  chartWrap.append(svg, tooltip); card.append(legend, chartWrap);
+  section.append(card, el('p', 'ois-term-note', `共同观测日口径 · 最新截面 ${snapshots[0].date}；一周前和一个月前均取目标日之前最近的完整观测。`));
   container.append(section);
 }
 

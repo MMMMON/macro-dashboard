@@ -69,6 +69,9 @@ with sync_playwright() as p:
     expect(ois_panel.locator('.ois-history-status')).to_contain_text('历史覆盖')
     assert '1Y' in ois_panel.locator('.panel-legend').inner_text()
     assert '30Y' in ois_panel.locator('.panel-legend').inner_text()
+    assert ois_panel.locator('.ois-term-card').count() == 1
+    assert ois_panel.locator('.ois-term-line').count() == 3
+    assert ois_panel.locator('.ois-term-legend span').count() == 3
     page.wait_for_timeout(400)
     ois_panel.screenshot(path=str(artifacts / 'ois-history-desktop.png'))
     assert page.locator('.combo-card').count() == 7
