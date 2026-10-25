@@ -82,8 +82,9 @@ with sync_playwright() as p:
     assert '海绵判定' in buffer_panel.locator('.chart-explainer').inner_text()
     assert '海绵差值：ON RRP − 四周实际下降' in buffer_panel.locator('.panel-legend').inner_text()
     corridor_panel = page.locator('.explain-panel').filter(has_text='联储操作利率走廊')
-    assert corridor_panel.locator('.corridor-row').count() == 3
+    assert corridor_panel.locator('.corridor-row').count() == 4
     assert 'ON RRP 利率' in corridor_panel.locator('.panel-legend').inner_text()
+    assert 'SOFR' in corridor_panel.locator('.panel-legend').inner_text()
     assert '贴现率（主要信贷）' in corridor_panel.locator('.panel-legend').inner_text()
     for label in ['1M', '3M', '6M', '1Y', 'ALL']:
         page.locator(f'#range-control button[data-range="{label}"]').click()
