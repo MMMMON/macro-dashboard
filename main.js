@@ -66,6 +66,41 @@ function previewSeries(card, key) {
   }
 }
 
+function registerChartAnnotations(card, plot, wrap) {
+  if (!window.ChartAnnotations || !card.chart) return;
+  const item = id => card.lines.find(line => line.key === id);
+  const plotOffset = () => {
+    const outer = wrap.getBoundingClientRect(), inner = plot.getBoundingClientRect();
+    return { x: inner.left - outer.left, y: inner.top - outer.top, width: inner.width, height: inner.height };
+  };
+  card.annotations = window.ChartAnnotations.registerChart({
+    id: `macro-${card.config.id}`,
+    root: wrap,
+    adapter: {
+      getPlotRect: plotOffset,
+      getSeries: () => card.lines.map(line => ({ id: line.key, label: line.label.textContent || line.key, axisId: card.config.axes?.[card.lines.indexOf(line)] || 'right', color: line.color })),
+      getPoints: id => item(id)?.data || [],
+      screenToData: (point, id) => {
+        const offset = plotOffset(), series = item(id);
+        if (!series) return null;
+        const time = card.chart.timeScale().coordinateToTime(point.x - offset.x);
+        const value = series.line.coordinateToPrice(point.y - offset.y);
+        return time == null || !Number.isFinite(value) ? null : { time, value };
+      },
+      dataToScreen: (anchor, id) => {
+        const offset = plotOffset(), series = item(id);
+        if (!series) return null;
+        const x = card.chart.timeScale().timeToCoordinate(anchor.time), y = series.line.priceToCoordinate(anchor.value);
+        return x == null || y == null ? null : { x: offset.x + x, y: offset.y + y };
+      },
+      subscribeGeometryChange: callback => {
+        card.chart.timeScale().subscribeVisibleLogicalRangeChange(callback);
+        return () => card.chart.timeScale().unsubscribeVisibleLogicalRangeChange(callback);
+      },
+    },
+  });
+}
+
 function initializeCharts() {
   for (const [index, config] of PANELS.entries()) {
     const article = element('article', 'chart-card');
@@ -130,6 +165,7 @@ function initializeCharts() {
       return { key, line, label, value, button, color: COLORS[i], latest: null, data: [] };
     });
     card.lines = lines;
+    registerChartAnnotations(card, plot, wrap);
     reset.addEventListener('click', () => { card.focusKey = null; restoreSeriesStyle(card); });
     chart.subscribeCrosshairMove(param => {
       for (const item of lines) {

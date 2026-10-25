@@ -186,7 +186,24 @@ function createChart(container, panel, d) {
     upper.setData(upperData); mask.setData(lowerData); created.push({ line: upper, spec: { name: '操作走廊上沿', data: upperData } }, { line: mask, spec: { name: '操作走廊下沿', data: lowerData } });
   }
   lines.forEach((spec, index) => { const line = chart.addSeries(LightweightCharts.LineSeries, { color: spec.color, lineWidth: spec.width || 2, lineType: spec.steps ? LightweightCharts.LineType.WithSteps : LightweightCharts.LineType.Simple, priceScaleId: spec.scale || 'right', priceLineVisible: false, lastValueVisible: true, crosshairMarkerRadius: 3, title: spec.name }); line.setData(spec.data); if (panel.zero && index === 0) line.createPriceLine({ price: 0, color: '#9d2933', lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: '零线' }); created.push({ line, spec }); });
-  return { chart, created, panel, container };
+  const view = { chart, created, panel, container };
+  if (window.ChartAnnotations && created.length) {
+    const byId = id => created.find((entry, index) => `${panel.id}-${index}` === id);
+    const offset = () => ({ x: 0, y: 0, width: container.clientWidth, height: container.clientHeight });
+    view.annotations = window.ChartAnnotations.registerChart({
+      id: `liquidity-${panel.id}`,
+      root: container,
+      adapter: {
+        getPlotRect: offset,
+        getSeries: () => created.map((entry, index) => ({ id: `${panel.id}-${index}`, label: entry.spec.name, axisId: entry.spec.scale || 'right', color: entry.spec.color || '#64748b' })),
+        getPoints: id => byId(id)?.spec.data || [],
+        screenToData: (point, id) => { const entry = byId(id), time = chart.timeScale().coordinateToTime(point.x), value = entry?.line.coordinateToPrice(point.y); return entry && time != null && Number.isFinite(value) ? { time, value } : null; },
+        dataToScreen: (anchor, id) => { const entry = byId(id), x = chart.timeScale().timeToCoordinate(anchor.time), y = entry?.line.priceToCoordinate(anchor.value); return entry && x != null && y != null ? { x, y } : null; },
+        subscribeGeometryChange: callback => { chart.timeScale().subscribeVisibleLogicalRangeChange(callback); return () => chart.timeScale().unsubscribeVisibleLogicalRangeChange(callback); },
+      },
+    });
+  }
+  return view;
 }
 
 function oisCurveSnapshots() {
