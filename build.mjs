@@ -1,6 +1,6 @@
 import { mkdir, copyFile, readFile, writeFile } from 'node:fs/promises';
 await mkdir('public/assets', { recursive: true });
-for (const file of ['index.html', 'main.js', 'liquidity.html', 'liquidity.js', 'liquidity-loader.js', 'data.json', 'economic_calendar.json', '_headers']) {
+for (const file of ['index.html', 'main.js', 'liquidity.html', 'liquidity.js', 'liquidity-loader.js', 'european-bonds.html', 'european-bonds.js', 'european-bonds.css', 'data.json', 'economic_calendar.json', '_headers']) {
   await copyFile(file, `public/${file}`);
 }
 await copyFile('assets/styles.css', 'public/assets/styles.css');

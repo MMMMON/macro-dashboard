@@ -94,6 +94,25 @@ MACROMICRO_OIS = {
     "ois_30y": (43605, "30Y"),
 }
 MACROMICRO_OIS_START = date(2000, 1, 1)
+MACROMICRO_EUROPEAN_BONDS = {
+    "fr_3m": (1886, "法国", "3M"), "fr_1y": (1889, "法国", "1Y"),
+    "fr_5y": (1893, "法国", "5Y"), "fr_10y": (1898, "法国", "10Y"),
+    "fr_30y": (1901, "法国", "30Y"),
+    "de_3m": (1904, "德国", "3M"), "de_1y": (1907, "德国", "1Y"),
+    "de_5y": (1911, "德国", "5Y"), "de_10y": (1916, "德国", "10Y"),
+    "de_30y": (1919, "德国", "30Y"),
+    "it_3m": (1991, "意大利", "3M"), "it_1y": (1994, "意大利", "1Y"),
+    "it_5y": (1998, "意大利", "5Y"), "it_10y": (2003, "意大利", "10Y"),
+    "it_30y": (2006, "意大利", "30Y"),
+    "es_3m": (2186, "西班牙", "3M"), "es_1y": (2189, "西班牙", "1Y"),
+    "es_5y": (2193, "西班牙", "5Y"), "es_10y": (2197, "西班牙", "10Y"),
+    "es_30y": (2200, "西班牙", "30Y"),
+    "gr_3m": (1920, "希腊", "3M"), "gr_5y": (1923, "希腊", "5Y"),
+    "gr_10y": (1924, "希腊", "10Y"),
+}
+ECB_AAA_10Y_URL = "https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.PY_10Y"
+GREECE_DEBT_URL = "https://minfin.gov.gr/en/fiscal-policy/public-debt/public-debt-data/"
+GREECE_SECURITIES_URL = "https://www.bankofgreece.gr/en/statistics/financial-markets-and-interest-rates/greek-government-securities"
 CME_TERM_SOFR = {
     "term_sofr_1m": ("TR1", "1M"),
     "term_sofr_3m": ("TR3", "3M"),
@@ -274,6 +293,114 @@ def fetch_macromicro_series(stat_id: int, start: date, end: date, api_key=None):
     if not isinstance(rows, list):
         raise RuntimeError("MacroMicro API 数据格式已变化")
     return clean_points(((row.get("date"), row.get("val")) for row in rows), start, end)
+
+
+def parse_ecb_csv(document: str, start: date, end: date):
+    rows = csv.DictReader(io.StringIO(document))
+    return clean_points(((row.get("TIME_PERIOD"), row.get("OBS_VALUE")) for row in rows), start, end)
+
+
+def fetch_ecb_aaa_10y(start: date, end: date):
+    with http_session() as session:
+        response = session.get(ECB_AAA_10Y_URL, params={
+            "startPeriod": start.isoformat(), "endPeriod": (end - timedelta(days=1)).isoformat(),
+            "format": "csvdata",
+        }, headers={"Accept": "text/csv"}, timeout=(10, 35))
+        if response.status_code != 200:
+            raise RuntimeError(f"ECB Data Portal HTTP {response.status_code}")
+    points = parse_ecb_csv(response.text, start, end)
+    if not points:
+        raise RuntimeError("ECB AAA 10Y 无有效观测")
+    return points
+
+
+def _flat_columns(frame):
+    return [" ".join(str(part) for part in col if str(part) != "nan") if isinstance(col, tuple)
+            else str(col) for col in frame.columns]
+
+
+def _number(value):
+    text = str(value).strip().replace("%", "").replace("\u2212", "-")
+    if not text or text.lower() in {"nan", "-", "—"}:
+        return None
+    if "," in text and "." not in text:
+        text = text.replace(",", ".")
+    else:
+        text = text.replace(",", "")
+    try:
+        result = float(text)
+        return result if math.isfinite(result) else None
+    except ValueError:
+        return None
+
+
+def parse_greece_1y_auctions(document: str, start: date, end: date):
+    """Read only published 52-week auction yields; absence remains a real gap."""
+    points = []
+    for frame in pd.read_html(io.StringIO(document), decimal=",", thousands=None, flavor="lxml"):
+        frame.columns = _flat_columns(frame)
+        normalized = ["".join(ch.lower() for ch in col if ch.isalnum()) for col in frame.columns]
+        one_year = next((i for i, col in enumerate(normalized)
+                         if "52wk" in col or "52week" in col or "yield" in col), None)
+        date_col = next((i for i, col in enumerate(normalized) if "date" in col), 0)
+        table_text = " ".join(normalized)
+        if one_year is None or not ("52wk" in table_text or "52week" in table_text):
+            continue
+        for row in frame.itertuples(index=False, name=None):
+            value = _number(row[one_year])
+            if value is not None:
+                points.append((row[date_col], value))
+    return clean_points(points, start, end)
+
+
+def fetch_greece_1y_auctions(start: date, end: date):
+    with http_session() as session:
+        response = session.get(GREECE_DEBT_URL, timeout=(10, 35))
+        if response.status_code != 200:
+            raise RuntimeError(f"希腊财政部 HTTP {response.status_code}")
+    points = parse_greece_1y_auctions(response.text, start, end)
+    if not points:
+        raise RuntimeError("希腊财政部 52 周拍卖无有效观测")
+    return points
+
+
+def parse_greece_30y_monthly(document: str, start: date, end: date):
+    """Extract the 30Y yield (last price/yield pair) from monthly official tables."""
+    points = []
+    for frame in pd.read_html(io.StringIO(document), decimal=",", thousands=None, flavor="lxml"):
+        frame.columns = _flat_columns(frame)
+        for row in frame.itertuples(index=False, name=None):
+            raw_period = str(row[0]).strip()
+            try:
+                period = pd.to_datetime(raw_period, format="%B %Y").date()
+            except (TypeError, ValueError):
+                continue
+            values = [number for number in (_number(cell) for cell in row[1:]) if number is not None]
+            if values:
+                points.append((period, values[-1]))
+    return clean_points(points, start, end)
+
+
+def fetch_greece_30y_monthly(start: date, end: date):
+    points = []
+    with http_session() as session:
+        for year in range(start.year, (end - timedelta(days=1)).year + 1):
+            response = session.get(GREECE_SECURITIES_URL, params={"order": "asc", "page": 1, "year": year},
+                                   timeout=(10, 35))
+            if response.status_code != 200:
+                raise RuntimeError(f"希腊央行 HTTP {response.status_code}")
+            points.extend(parse_greece_30y_monthly(response.text, start, end))
+    points = clean_points(((point["time"], point["value"]) for point in points), start, end)
+    if not points:
+        raise RuntimeError("希腊央行 30Y 月均收益率无有效观测")
+    return points
+
+
+def spread_points(left, right):
+    """Basis-point difference on exact common observation dates; never fill gaps."""
+    right_by_day = {point["time"]: point["value"] for point in right}
+    return [{"time": point["time"], "value": round((point["value"] - right_by_day[point["time"]]) * 100, 6)}
+            for point in left if point["time"] in right_by_day]
 
 
 def fetch_cme_term_sofr(start: date, end: date, api_id=None, api_password=None):
@@ -471,6 +598,101 @@ def make_series(meta, points, old, start, end, error=None):
 
 def scale_points(points, multiplier):
     return [{"time": point["time"], "value": round(point["value"] * multiplier, 6)} for point in points]
+
+
+def build_european_bonds(core_series, previous, start: date, end: date):
+    old_series = previous.get("series", {})
+    european = {}
+
+    def fetch_macromicro(item):
+        key, (stat_id, country, tenor) = item
+        try:
+            return key, fetch_macromicro_series(stat_id, start, end), None
+        except Exception as exc:
+            return key, [], f"MacroMicro 暂不可用（{type(exc).__name__}）"
+
+    print("Fetching licensed European government bond curves...", flush=True)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(fetch_macromicro, MACROMICRO_EUROPEAN_BONDS.items()))
+    for key, points, error in results:
+        stat_id, country, tenor = MACROMICRO_EUROPEAN_BONDS[key]
+        european[key] = make_series({
+            "name": f"{country} {tenor} 国债收益率", "symbol": f"MacroMicro {stat_id}",
+            "unit": "%", "frequency": "daily", "source": "MacroMicro 授权接口",
+            "source_url": f"https://en.macromicro.me/series/{stat_id}",
+            "stale_business_days": 2,
+            "note": "滚动基准国债收益率；不对休市日或缺失观测前向填充。",
+        }, points, old_series.get(key, {}), start, end, error or "MacroMicro 无有效观测")
+
+    official_specs = {
+        "gr_1y": (fetch_greece_1y_auctions, {
+            "name": "希腊 1Y 国库券拍卖收益率", "symbol": "52-week T-bill auction",
+            "unit": "%", "frequency": "event", "display": "markers",
+            "source": "希腊财政部", "source_url": GREECE_DEBT_URL, "stale_days": 140,
+            "note": "52 周国库券真实拍卖收益率；仅在拍卖日显示离散标记，不连线、不插值。",
+        }),
+        "gr_30y": (fetch_greece_30y_monthly, {
+            "name": "希腊 30Y 国债基准收益率（月均）", "symbol": "GGB 30Y monthly average",
+            "unit": "%", "frequency": "monthly", "source": "希腊央行",
+            "source_url": GREECE_SECURITIES_URL, "stale_days": 45,
+            "note": "希腊央行公开的 30Y 基准国债月均收益率；月频，不插值。",
+        }),
+        "eu_aaa_10y": (fetch_ecb_aaa_10y, {
+            "name": "欧元区 AAA 10Y 平价收益率", "symbol": "YC.B.U2.EUR.4F.G_N_A.SV_C_YM.PY_10Y",
+            "unit": "%", "frequency": "daily", "source": "ECB Data Portal",
+            "source_url": "https://data.ecb.europa.eu/data/datasets/YC/YC.B.U2.EUR.4F.G_N_A.SV_C_YM.PY_10Y",
+            "stale_business_days": 2,
+            "note": "欧元区 AAA 评级中央政府债券收益率曲线的 10Y 平价收益率。",
+        }),
+    }
+    for key, (fetcher, meta) in official_specs.items():
+        try:
+            points, error = fetcher(start, end), None
+        except Exception as exc:
+            points, error = [], f"{meta['source']}暂不可用（{type(exc).__name__}）"
+        european[key] = make_series(meta, points, old_series.get(key, {}), start, end,
+                                    error or f"{meta['source']}无有效观测")
+
+    old_spreads = previous.get("spreads", {})
+    spread_specs = {
+        "fr_de_10y": ("法国10Y − 德国10Y", european["fr_10y"], european["de_10y"], False),
+        "it_de_10y": ("意大利10Y − 德国10Y", european["it_10y"], european["de_10y"], False),
+        "gr_de_10y": ("希腊10Y − 德国10Y", european["gr_10y"], european["de_10y"], False),
+        "es_de_10y": ("西班牙10Y − 德国10Y", european["es_10y"], european["de_10y"], False),
+        "us_eu_aaa_10y": ("美国10Y − 欧元区AAA 10Y", core_series["us10y"], european["eu_aaa_10y"], True),
+    }
+    spreads = {}
+    for key, (name, left, right, cross_market) in spread_specs.items():
+        points = spread_points(left.get("data", []), right.get("data", []))
+        source_error = None if points else "两侧序列没有共同观测日期"
+        spreads[key] = make_series({
+            "name": name, "symbol": key, "unit": "bp", "frequency": "daily",
+            "source": f"{left.get('source', '—')} / {right.get('source', '—')}",
+            "source_url": left.get("source_url") or right.get("source_url"),
+            "stale_business_days": 3, "cross_market": cross_market,
+            "note": ("跨市场利率差，不代表主权信用利差；" if cross_market else "相对德国基准的名义收益率利差；")
+                    + "仅按共同观测日期计算 (A−B)×100，不前向填充。",
+        }, points, old_spreads.get(key, {}), start, end, source_error)
+        degraded_sources = [item for item in (left, right) if item.get("status") != "ok" or item.get("stale")]
+        if degraded_sources and spreads[key]["data"]:
+            spreads[key]["status"] = "cached"
+            spreads[key]["stale"] = any(item.get("stale") for item in degraded_sources)
+            spreads[key]["message"] = "至少一侧使用缓存或延迟观测；利差仍只按共同日期计算"
+
+    all_items = {**european, **spreads}
+    issues = [key for key, item in all_items.items() if item["status"] != "ok" or item["stale"]]
+    dated = [item["last_date"] for item in all_items.values() if item.get("last_date")]
+    available = sum(bool(item.get("data")) for item in all_items.values())
+    return {
+        "state": "success" if not issues else "partial" if available else "unavailable",
+        "as_of": max(dated) if dated else None,
+        "series": european, "spreads": spreads, "issues": issues,
+        "methodology": {
+            "alignment": "仅取双方共同观测日期；不前向填充、不插值，允许负值",
+            "spread_formula": "(A收益率 − B收益率) × 100 bp",
+            "history_days": (end - start).days,
+        },
+    }
 
 
 def fetch_ofr_series(mnemonic: str, start: date, end: date):
@@ -963,6 +1185,9 @@ def main():
         "source_url": "https://yield.chinabond.com.cn/", "note": "中债国债收益率曲线，10 年期限"},
         points, old.get("cn10y", {}), start, end, error or "中债无有效观测")
 
+    european_bonds = build_european_bonds(
+        series, previous.get("european_bonds", {}), start, end)
+
     # Dollar liquidity PQG. These inputs are independent of the macro panels so
     # a delayed source never overwrites a previously valid liquidity snapshot.
     liquidity_old = previous.get("liquidity_pqg", {}).get("series", {})
@@ -1131,10 +1356,11 @@ def main():
     if not good:
         raise RuntimeError("All sources failed; original data.json left untouched")
     problems = [key for key, item in series.items() if item["status"] != "ok" or item["stale"]]
-    payload = {"schema_version": 2, "history_days": args.days,
+    payload = {"schema_version": 3, "history_days": args.days,
                "price_basis": "Yahoo adjusted daily close; no forward fill; current UTC day excluded",
                "series": series,
                "rate_atlas": rate_atlas,
+               "european_bonds": european_bonds,
                "liquidity_pqg": {
                    "as_of": liquidity_weeks[-1]["as_of"] if liquidity_weeks else None,
                    "weeks": liquidity_weeks, "series": liquidity_series, "repo_series": repo_series,
@@ -1157,6 +1383,7 @@ def main():
             handle.write("|Series|Status|Latest observation|\n|---|---|---|\n")
             for key, item in series.items():
                 handle.write(f"|{key}|{item['status']}{' / delayed' if item['stale'] else ''}|{item['last_date'] or '—'}|\n")
+            handle.write(f"\nEuropean bonds: {european_bonds['state']} ({len(european_bonds['issues'])} issues).\n")
 
 
 if __name__ == "__main__":

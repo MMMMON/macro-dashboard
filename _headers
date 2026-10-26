@@ -15,5 +15,9 @@
   Cache-Control: no-cache, max-age=0, must-revalidate
 /liquidity-runtime.js
   Cache-Control: no-cache, max-age=0, must-revalidate
+/european-bonds.html
+  Cache-Control: no-cache, max-age=0, must-revalidate
+/european-bonds.js
+  Cache-Control: no-cache, max-age=0, must-revalidate
 /assets/lightweight-charts.js
   Cache-Control: no-cache, max-age=0, must-revalidate

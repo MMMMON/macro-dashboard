@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f5f0">
+  <meta name="description" content="欧洲国债收益率曲线与相对德国、美欧十年利差看板。">
+  <title>欧洲国债看板 · Macro Atlas</title>
+  <link rel="stylesheet" href="./assets/styles.css">
+  <link rel="stylesheet" href="./european-bonds.css">
+  <script defer src="./assets/lightweight-charts.js"></script>
+  <script defer src="./european-bonds.js"></script>
+</head>
+<body class="euro-page">
+  <header class="site-header">
+    <div class="euro-shell euro-nav">
+      <a class="brand" href="./" aria-label="Macro Atlas 首页"><span class="brand-mark">M<span>∕</span></span> MACRO ATLAS <span class="brand-divider">/</span><span class="brand-sub">欧洲国债</span></a>
+      <nav class="euro-links" aria-label="主导航"><a href="./">宏观看板</a><a href="./liquidity.html">美元流动性 PQG</a><a href="#methodology">口径与来源</a><button type="button" data-refresh-task="macro">↻ 抓取最新数据</button><a href="https://macro-dashboard-hub.pages.dev/">⌂ 返回主界面</a></nav>
+    </div>
+  </header>
+  <main class="euro-shell">
+    <section class="euro-hero">
+      <div><p class="eyebrow"><span class="status-dot"></span> EUROPEAN SOVEREIGN RATES</p><h1>欧洲国债看板<span>。</span></h1><p>先看相对德国的风险定价，再看各国期限结构。美欧利差单列为跨市场利率差，不作信用利差解释。</p></div>
+      <div class="euro-status"><p id="euro-update" role="status">正在读取最新快照…</p><p id="euro-observation">默认最近 1 年 · 实际观测日以图例为准</p></div>
+    </section>
+    <div id="euro-error" class="notice error" role="alert" hidden></div>
+    <section class="euro-toolbar" aria-label="图表控制">
+      <div><span class="eyebrow">SOVEREIGN SPREADS &amp; CURVES</span><h2>利差与期限结构</h2></div>
+      <div id="euro-range" class="segmented" aria-label="图表时间范围"><button type="button" data-range="3M">3个月</button><button type="button" data-range="1Y" aria-pressed="true">1年</button><button type="button" data-range="3Y">3年</button></div>
+    </section>
+    <p class="euro-guide">点击图例聚焦单线，再次点击恢复全部。收益率单位为 %；利差单位为 bp；缺失日期保持缺口。</p>
+    <section id="spread-chart" class="euro-spread" aria-label="十年期利差"></section>
+    <section id="country-grid" class="euro-grid" aria-label="五国国债收益率曲线"></section>
+    <section id="methodology" class="methodology euro-methodology">
+      <div><p class="eyebrow">READ THE DATA</p><h2>数据、频率与边界</h2></div>
+      <div class="euro-method-grid">
+        <p><strong>利差计算</strong>只取双方具有相同观测日期的数据，按（A收益率 − B收益率）×100 计算 bp；不前向填充，允许负值并显示零轴。</p>
+        <p><strong>希腊特殊期限</strong>1Y 为财政部 52 周国库券真实拍卖收益率，仅显示拍卖日散点；30Y 为希腊央行公开月均基准收益率，明确按月频展示。</p>
+        <p><strong>来源边界</strong>欧洲基准期限来自 MacroMicro 授权接口；欧元区 AAA 10Y 来自 ECB；美国 10Y 来自美国财政部或 FRED。授权缺失时显示暂不可用，不抓网页或生成模拟值。</p>
+      </div>
+      <details class="source-details"><summary>展开每条曲线的来源、频率、观测日期与缓存状态</summary><div id="euro-sources" class="source-list"></div></details>
+    </section>
+    <footer><span>MACRO ATLAS / 欧洲国债</span><span>仅作市场观察，不构成投资建议</span></footer>
+  </main>
+  <noscript>此看板需要启用 JavaScript 才能显示图表。</noscript>
+  <script src="https://macro-dashboard-hub.pages.dev/manual-refresh.js"></script>
+</body>
+</html>

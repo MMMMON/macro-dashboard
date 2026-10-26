@@ -8,9 +8,10 @@ Python 抓取真实数据，GitHub Actions 每天更新 `data.json`，Cloudflare
 ## 文件
 
 ```text
-index.html / liquidity.html   全球宏观看板与美元流动性 PQG 页面
+index.html / liquidity.html / european-bonds.html   全球宏观、美元流动性与欧洲国债页面
 main.js                       图表初始化、双轴、时间范围、图例和异常状态
 liquidity.js                  PQG 三相评分、周度趋势与数据下钻
+european-bonds.js/.css        欧洲国债六图、期限切换、图例和移动端布局
 styles.css                    Tailwind 输入与自定义样式
 assets/styles.css             已编译样式
 data.json                     首次真实抓取的完整数据快照
@@ -109,6 +110,12 @@ CME 历史结算接口需要相应许可。若仓库 secret `CME_SR3_FORWARD_URL
 
 直接 OIS 不足时，可用 CME 官方 Term SOFR 作为短端路径代理。配置仓库 secrets `CME_TERM_SOFR_API_ID` 与 `CME_TERM_SOFR_API_PASSWORD` 后，更新器通过 OAuth 获取 1M、3M、6M、12M 从 2020/2021 年起的完整日度历史，只增量补最近日期。看板明确将其标为代理；直接 OIS 数据新鲜且达到 21 个共同观测时自动优先使用直接 OIS。
 
+### 欧洲国债看板
+
+`/european-bonds.html` 顶部展示法国、意大利、希腊、西班牙相对德国的 10Y 利差，以及美国 10Y 相对欧元区 AAA 10Y 平价收益率的跨市场利率差；下方展示法国、德国、意大利、西班牙和希腊的 3M、1Y、5Y、10Y、30Y。所有利差只按双方共同观测日期计算 `(A−B)×100 bp`，不前向填充并保留负值。
+
+欧洲基准期限通过 `MACROMICRO_API_KEY` 授权接口读取；欧元区 AAA 10Y 使用 ECB Data Portal。希腊 1Y 使用财政部 52 周国库券拍卖收益率，仅显示离散拍卖点；希腊 30Y 使用希腊央行月均基准收益率。任一来源失败时保留最近成功快照并公开标为缓存或不可用，不以网页行情镜像或模拟数据替代。
+
 ### FRED API 接口
 
 `fetch_fred_series(series_id, start, end, api_key=None)` 已完整实现官方 API 接口：
@@ -133,7 +140,7 @@ HTTP 请求有超时和重试。空值、历史截断、日期倒退视为失败
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 3,
   "history_days": 1095,
   "price_basis": "Yahoo adjusted daily close; no forward fill; current UTC day excluded",
   "generated_at": "2026-09-16T00:17:00+00:00",

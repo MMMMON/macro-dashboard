@@ -92,6 +92,52 @@ class SnapshotTests(unittest.TestCase):
         real = [{"time": "2026-01-28", "value": 1.8}, {"time": "2026-01-30", "value": 1.9}]
         self.assertEqual(feed.breakeven_points(nominal, real), [{"time": "2026-01-28", "value": 2.4}])
 
+    def test_european_spread_uses_common_dates_and_keeps_negative_values(self):
+        left = [{"time": "2026-01-05", "value": 2.1}, {"time": "2026-01-06", "value": 1.9}]
+        right = [{"time": "2026-01-05", "value": 2.3}, {"time": "2026-01-07", "value": 2.0}]
+        self.assertEqual(feed.spread_points(left, right), [{"time": "2026-01-05", "value": -20.0}])
+
+    def test_ecb_csv_parser_uses_published_observations_only(self):
+        document = "TIME_PERIOD,OBS_VALUE\n2026-01-05,3.25\n2026-01-06,\n2026-02-01,9.9\n"
+        self.assertEqual(feed.parse_ecb_csv(document, self.start, self.end),
+                         [{"time": "2026-01-05", "value": 3.25}])
+
+    def test_greece_one_year_parser_keeps_sparse_auction_days(self):
+        document = """<table><thead><tr><th>Date</th><th>13 Wk</th><th>52 Wk</th></tr></thead>
+        <tbody><tr><td>2026-01-07</td><td>2.1</td><td>2.44%</td></tr>
+        <tr><td>2026-01-08</td><td>2.2</td><td>—</td></tr>
+        <tr><td>2026-01-21</td><td>2.0</td><td>2,38</td></tr></tbody></table>"""
+        self.assertEqual(feed.parse_greece_1y_auctions(document, self.start, self.end), [
+            {"time": "2026-01-07", "value": 2.44}, {"time": "2026-01-21", "value": 2.38}])
+
+    def test_greece_thirty_year_parser_reads_monthly_last_yield(self):
+        document = """<table><tr><th>Month</th><th>3Y Price</th><th>3Y Yield</th><th>30Y Price</th><th>30Y Yield</th></tr>
+        <tr><td>January 2026</td><td>99.1</td><td>2.1</td><td>97.4</td><td>4.27</td></tr>
+        <tr><td>31/01/2026</td><td>99.2</td><td>2.2</td><td>97.5</td><td>4.20</td></tr></table>"""
+        self.assertEqual(feed.parse_greece_30y_monthly(document, self.start, self.end),
+                         [{"time": "2026-01-01", "value": 4.27}])
+
+    def test_european_source_failure_preserves_cache_and_degrades_derived_spread(self):
+        old_point = [{"time": "2026-01-20", "value": 3.0}]
+        previous = {"series": {"fr_10y": {"data": old_point}}, "spreads": {}}
+        live_point = [{"time": "2026-01-20", "value": 2.0}]
+        def macro(stat_id, start, end):
+            if stat_id == feed.MACROMICRO_EUROPEAN_BONDS["fr_10y"][0]:
+                raise RuntimeError("licensed source outage")
+            return live_point
+        core = {"us10y": {"data": live_point, "status": "ok", "stale": False,
+                           "source": "Treasury", "source_url": "https://example.test"}}
+        with patch.object(feed, "fetch_macromicro_series", side_effect=macro), \
+             patch.object(feed, "fetch_greece_1y_auctions", return_value=live_point), \
+             patch.object(feed, "fetch_greece_30y_monthly", return_value=live_point), \
+             patch.object(feed, "fetch_ecb_aaa_10y", return_value=live_point):
+            result = feed.build_european_bonds(core, previous, self.start, self.end)
+        self.assertEqual(result["series"]["fr_10y"]["status"], "cached")
+        self.assertEqual(result["series"]["fr_10y"]["data"], old_point)
+        self.assertEqual(result["spreads"]["fr_de_10y"]["status"], "cached")
+        self.assertEqual(result["spreads"]["fr_de_10y"]["data"],
+                         [{"time": "2026-01-20", "value": 100.0}])
+
     def test_treasury_xml_filters_null_observations(self):
         document = '''<feed xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata" xmlns:d="http://schemas.microsoft.com/ado/2007/08/dataservices">
         <m:properties><d:NEW_DATE>2026-01-28T00:00:00</d:NEW_DATE><d:TC_10YEAR>1.5</d:TC_10YEAR></m:properties>
@@ -139,6 +185,7 @@ class SnapshotTests(unittest.TestCase):
                  patch.object(feed, 'fetch_fred_series', side_effect=RuntimeError), \
                  patch.object(feed, 'fetch_ofr_series', side_effect=RuntimeError), \
                  patch.object(feed, 'fetch_tbill_events', side_effect=RuntimeError), \
+                 patch.object(feed, 'build_european_bonds', return_value={"state": "unavailable", "series": {}, "spreads": {}, "issues": []}), \
                  patch.object(feed, 'fetch_china10y', side_effect=RuntimeError):
                 with self.assertRaises(RuntimeError):
                     feed.main()
