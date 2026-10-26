@@ -71928,12 +71928,12 @@
     },
     "kw10y": {
       "name": "Kim-Wright 10Y 期限溢价",
-      "symbol": "THREEFYTP10",
+      "symbol": "THREEFYTP1000.B",
       "unit": "%",
       "frequency": "daily",
-      "source": "FRED",
-      "source_url": "https://fred.stlouisfed.org/series/THREEFYTP10",
-      "note": "工作日发布；收益率单位为百分比",
+      "source": "Federal Reserve Board",
+      "source_url": "https://www.federalreserve.gov/data/yield-curve-tables/feds200533.csv",
+      "note": "Kim-Wright 三因子无套利期限结构模型；官方日频模型估计，可能修订",
       "status": "ok",
       "stale": true,
       "last_date": "2026-10-16",
@@ -235205,5 +235205,5 @@
       "tbill": "近 14 个日历日净发行≥500 亿美元为强虹吸"
     }
   },
-  "generated_at": "2026-10-26T07:10:34+00:00"
+  "generated_at": "2026-10-26T07:25:38+00:00"
 }
