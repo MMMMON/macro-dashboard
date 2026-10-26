@@ -292,7 +292,7 @@ async function loadData() {
   busy = true;
   $('refresh').disabled = true;
   try {
-    const response = await fetch('./data.json', { cache: 'no-store', signal: AbortSignal.timeout(20000) });
+    const response = await fetch('./macro-data.json', { cache: 'default', signal: AbortSignal.timeout(12000) });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const next = validateSnapshot(await response.json());
     snapshot = next;
@@ -331,7 +331,7 @@ try {
     for (const child of $('range-control').children) child.setAttribute('aria-pressed', String(child === button));
     if (snapshot) renderCharts();
   });
-  $('refresh').addEventListener('click', loadData);
+  $('refresh').addEventListener('click', () => loadData());
   loadData();
   setInterval(() => { if (!document.hidden) loadData(); }, 15 * 60 * 1000);
 } catch (error) {

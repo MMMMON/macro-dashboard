@@ -1,12 +1,14 @@
 /data.json
   Cache-Control: no-cache, max-age=0, must-revalidate
+/macro-data.json
+  Cache-Control: public, max-age=300, must-revalidate
 /economic_calendar.json
   Cache-Control: no-cache, max-age=0, must-revalidate
   Access-Control-Allow-Origin: *
 /*
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://macro-dashboard-hub.pages.dev/manual-refresh.js; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://macro-dashboard-updater.nuobeierczw.workers.dev; frame-ancestors 'self' https://macro-dashboard-hub.pages.dev; base-uri 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://macro-dashboard-hub.pages.dev; style-src 'self' 'unsafe-inline' https://macro-dashboard-hub.pages.dev; img-src 'self' data:; connect-src 'self' https://macro-dashboard-updater.nuobeierczw.workers.dev; frame-ancestors 'self' https://macro-dashboard-hub.pages.dev; base-uri 'self'; object-src 'none'
 /liquidity
   Cache-Control: no-cache, max-age=0, must-revalidate
 /liquidity.js
