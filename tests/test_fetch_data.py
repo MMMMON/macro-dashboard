@@ -1,6 +1,8 @@
 import json
+import io
 import tempfile
 import unittest
+import zipfile
 from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import patch
@@ -102,6 +104,42 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(feed.parse_ecb_csv(document, self.start, self.end),
                          [{"time": "2026-01-05", "value": 3.25}])
 
+    def test_banque_france_parser_selects_supported_tenors(self):
+        document = """Title:,one,five,ten,thirty
+Series key:,FM.D.FR.EUR.FR2.BB.FRMOYTEC1.HSTA,FM.D.FR.EUR.FR2.BB.FRMOYTEC5.HSTA,FM.D.FR.EUR.FR2.BB.FRMOYTEC10.HSTA,FM.D.FR.EUR.FR2.BB.FRMOYTEC30.HSTA
+Unit:,% ,% ,% ,%
+Multiplier:,0,0,0,0
+Collection:,E,E,E,E
+Source:,Euronext,Euronext,Euronext,Euronext
+2026-01-05,2.1,2.5,3.0,3.4
+2026-01-06,-,2.6,3.1,3.5
+"""
+        result = feed.parse_banque_france_tec_csv(document, self.start, self.end)
+        self.assertEqual(result["fr_1y"], [{"time": "2026-01-05", "value": 2.1}])
+        self.assertEqual(result["fr_10y"][-1], {"time": "2026-01-06", "value": 3.1})
+
+    def test_bundesbank_parser_ignores_metadata_and_missing_values(self):
+        document = '"",series,flags\nDecimals,2,\n2026-01-05,2.50,\n2026-01-06,.,No value\n'
+        self.assertEqual(feed.parse_bundesbank_csv(document, self.start, self.end),
+                         [{"time": "2026-01-05", "value": 2.5}])
+
+    def test_banco_espana_parser_maps_dates_and_values(self):
+        payload = [{"serie": "D_DTES00B7", "fechas": ["2026-01-05T00:00:00Z"],
+                    "valores": [2.25]}]
+        result = feed.parse_banco_espana_json(payload, self.start, self.end)
+        self.assertEqual(result["es_3m"], [{"time": "2026-01-05", "value": 2.25}])
+        self.assertEqual(result["es_10y"], [])
+
+    def test_banca_italia_parser_maps_benchmark_columns(self):
+        csv_document = ('"DATA_OSS";"MFN_BMK.D.020.922.0.EUR.205";'
+                        '"MFN_BMK.D.020.922.0.EUR.210";"MFN_BMK.D.020.922.0.EUR.230"\n'
+                        '"2026/01/05";"2.5";"3.1";"3.8"\n')
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w") as archive:
+            archive.writestr("data.csv", csv_document)
+        result = feed.parse_banca_italia_zip(buffer.getvalue(), self.start, self.end)
+        self.assertEqual(result["it_10y"], [{"time": "2026-01-05", "value": 3.1}])
+
     def test_greece_one_year_parser_keeps_sparse_auction_days(self):
         document = """<table><thead><tr><th>Date</th><th>13 Wk</th><th>52 Wk</th></tr></thead>
         <tbody><tr><td>2026-01-07</td><td>2.1</td><td>2.44%</td></tr>
@@ -127,7 +165,9 @@ class SnapshotTests(unittest.TestCase):
             return live_point
         core = {"us10y": {"data": live_point, "status": "ok", "stale": False,
                            "source": "Treasury", "source_url": "https://example.test"}}
-        with patch.object(feed, "fetch_macromicro_series", side_effect=macro), \
+        with patch.dict("os.environ", {"MACROMICRO_API_KEY": "test"}), \
+             patch.object(feed, "fetch_public_european_curves", return_value=({}, {})), \
+             patch.object(feed, "fetch_macromicro_series", side_effect=macro), \
              patch.object(feed, "fetch_greece_1y_auctions", return_value=live_point), \
              patch.object(feed, "fetch_greece_30y_monthly", return_value=live_point), \
              patch.object(feed, "fetch_ecb_aaa_10y", return_value=live_point):

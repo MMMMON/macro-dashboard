@@ -9,6 +9,7 @@ import math
 import os
 import time
 import xml.etree.ElementTree as ET
+import zipfile
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta, timezone
@@ -113,6 +114,10 @@ MACROMICRO_EUROPEAN_BONDS = {
 ECB_AAA_10Y_URL = "https://data-api.ecb.europa.eu/service/data/YC/B.U2.EUR.4F.G_N_A.SV_C_YM.PY_10Y"
 GREECE_DEBT_URL = "https://minfin.gov.gr/en/fiscal-policy/public-debt/public-debt-data/"
 GREECE_SECURITIES_URL = "https://www.bankofgreece.gr/en/statistics/financial-markets-and-interest-rates/greek-government-securities"
+BANQUE_FRANCE_TEC_URL = "https://webstat.banque-france.fr/export/csv-columns/en/selection/5385693"
+BUNDESBANK_DATA_URL = "https://api.statistiken.bundesbank.de/rest/data/BBSSY"
+BANCO_ESPANA_DATA_URL = "https://app.bde.es/bierest/resources/srdatosapp/listaSeries"
+BANCA_ITALIA_DATA_URL = "https://a2a.bancaditalia.it/infostat/dataservices/export/EN/CSV/DATA/CUBE/BANKITALIA/DIFF/BMK0200"
 CME_TERM_SOFR = {
     "term_sofr_1m": ("TR1", "1M"),
     "term_sofr_3m": ("TR3", "3M"),
@@ -312,6 +317,153 @@ def fetch_ecb_aaa_10y(start: date, end: date):
     if not points:
         raise RuntimeError("ECB AAA 10Y 无有效观测")
     return points
+
+
+def parse_banque_france_tec_csv(document: str, start: date, end: date):
+    """Parse the public Banque de France TEC selection export."""
+    rows = list(csv.reader(io.StringIO(document.lstrip("\ufeff"))))
+    if len(rows) < 7 or not rows[1] or rows[1][0] != "Series key:":
+        raise RuntimeError("Banque de France CSV schema changed")
+    wanted = {
+        "FM.D.FR.EUR.FR2.BB.FRMOYTEC1.HSTA": "fr_1y",
+        "FM.D.FR.EUR.FR2.BB.FRMOYTEC5.HSTA": "fr_5y",
+        "FM.D.FR.EUR.FR2.BB.FRMOYTEC10.HSTA": "fr_10y",
+        "FM.D.FR.EUR.FR2.BB.FRMOYTEC30.HSTA": "fr_30y",
+    }
+    columns = {index: wanted[key] for index, key in enumerate(rows[1]) if key in wanted}
+    values = {key: [] for key in wanted.values()}
+    for row in rows[6:]:
+        if not row:
+            continue
+        for index, key in columns.items():
+            if index < len(row):
+                values[key].append((row[0], row[index]))
+    return {key: clean_points(points, start, end) for key, points in values.items()}
+
+
+def fetch_banque_france_curves(start: date, end: date):
+    with http_session() as session:
+        response = session.get(BANQUE_FRANCE_TEC_URL, timeout=(10, 90))
+        if response.status_code != 200:
+            raise RuntimeError(f"Banque de France HTTP {response.status_code}")
+    return parse_banque_france_tec_csv(response.content.decode("utf-8-sig"), start, end)
+
+
+def parse_bundesbank_csv(document: str, start: date, end: date):
+    rows = csv.reader(io.StringIO(document.lstrip("\ufeff")))
+    points = []
+    for row in rows:
+        if len(row) >= 2 and len(row[0]) == 10 and row[0][4:5] == "-":
+            points.append((row[0], row[1]))
+    return clean_points(points, start, end)
+
+
+def fetch_bundesbank_curves(start: date, end: date):
+    series = {
+        "de_5y": "D.REN.EUR.A620.000000WT0505.A",
+        "de_10y": "D.REN.EUR.A630.000000WT1010.A",
+        "de_30y": "D.REN.EUR.A640.000000WT3030.A",
+    }
+
+    def fetch_one(item):
+        key, code = item
+        with http_session() as session:
+            response = session.get(f"{BUNDESBANK_DATA_URL}/{code}",
+                                   params={"format": "csv", "lang": "en"}, timeout=(10, 60))
+            if response.status_code != 200:
+                raise RuntimeError(f"Bundesbank HTTP {response.status_code}")
+        return key, parse_bundesbank_csv(response.content.decode("utf-8-sig"), start, end)
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        return dict(pool.map(fetch_one, series.items()))
+
+
+def parse_banco_espana_json(payload, start: date, end: date):
+    wanted = {
+        "D_DTES00B7": "es_3m", "D_DTES00U7": "es_1y",
+        "D_G0B1F0ZE": "es_5y", "D_G0B1F0ZP": "es_10y",
+    }
+    result = {key: [] for key in wanted.values()}
+    for item in payload:
+        key = wanted.get(item.get("serie"))
+        if key:
+            result[key] = clean_points(zip(item.get("fechas", []), item.get("valores", [])), start, end)
+    return result
+
+
+def fetch_banco_espana_curves(start: date, end: date):
+    codes = "D_DTES00B7,D_DTES00U7,D_G0B1F0ZE,D_G0B1F0ZP"
+    with http_session() as session:
+        response = session.get(BANCO_ESPANA_DATA_URL, params={
+            "idioma": "en", "series": codes, "rango": "36M",
+        }, timeout=(10, 60))
+        if response.status_code != 200:
+            raise RuntimeError(f"Banco de España HTTP {response.status_code}")
+    return parse_banco_espana_json(response.json(), start, end)
+
+
+def parse_banca_italia_zip(content: bytes, start: date, end: date):
+    wanted = {
+        "MFN_BMK.D.020.922.0.EUR.205": "it_5y",
+        "MFN_BMK.D.020.922.0.EUR.210": "it_10y",
+        "MFN_BMK.D.020.922.0.EUR.230": "it_30y",
+    }
+    with zipfile.ZipFile(io.BytesIO(content)) as archive:
+        names = [name for name in archive.namelist() if name.lower().endswith(".csv")]
+        if not names:
+            raise RuntimeError("Banca d'Italia ZIP has no CSV")
+        rows = list(csv.reader(io.StringIO(archive.read(names[0]).decode("utf-8-sig")), delimiter=";"))
+    if not rows:
+        raise RuntimeError("Banca d'Italia CSV is empty")
+    columns = {index: wanted[key] for index, key in enumerate(rows[0]) if key in wanted}
+    values = {key: [] for key in wanted.values()}
+    for row in rows[1:]:
+        if not row:
+            continue
+        day = row[0].replace("/", "-")
+        for index, key in columns.items():
+            if index < len(row):
+                values[key].append((day, row[index]))
+    return {key: clean_points(points, start, end) for key, points in values.items()}
+
+
+def fetch_banca_italia_curves(start: date, end: date):
+    with http_session() as session:
+        response = session.get(BANCA_ITALIA_DATA_URL, timeout=(10, 90))
+        if response.status_code != 200:
+            raise RuntimeError(f"Banca d'Italia HTTP {response.status_code}")
+    return parse_banca_italia_zip(response.content, start, end)
+
+
+def fetch_public_european_curves(start: date, end: date):
+    """Fetch independent official sources; one outage must not suppress the others."""
+    providers = {
+        "fr": (fetch_banque_france_curves, "Banque de France Webstat（源：Euronext）",
+               BANQUE_FRANCE_TEC_URL, "法国国债恒定期限 TEC 收益率；日频，不前向填充。"),
+        "de": (fetch_bundesbank_curves, "Deutsche Bundesbank", BUNDESBANK_DATA_URL,
+               "当前德国联邦证券的官方日收益率；基准券可能随换券发生变化。"),
+        "es": (fetch_banco_espana_curves, "Banco de España", BANCO_ESPANA_DATA_URL,
+               "西班牙央行按二级市场成交编制的国债收益率；日频，不前向填充。"),
+        "it": (fetch_banca_italia_curves, "Banca d'Italia BDS（源：MTS）",
+               BANCA_ITALIA_DATA_URL, "意大利基准 BTP 到期收益率；央行按月发布日度观测。"),
+    }
+    result, errors = {}, {}
+
+    def fetch_provider(item):
+        prefix, (fetcher, source, source_url, note) = item
+        try:
+            return prefix, fetcher(start, end), source, source_url, note, None
+        except Exception as exc:
+            return prefix, {}, source, source_url, note, f"{source}暂不可用（{type(exc).__name__}）"
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        fetched = list(pool.map(fetch_provider, providers.items()))
+    for prefix, curves, source, source_url, note, error in fetched:
+        if error:
+            errors[prefix] = error
+        for key, points in curves.items():
+            result[key] = {"points": points, "source": source, "source_url": source_url, "note": note}
+    return result, errors
 
 
 def _flat_columns(frame):
@@ -604,6 +756,10 @@ def build_european_bonds(core_series, previous, start: date, end: date):
     old_series = previous.get("series", {})
     european = {}
 
+    print("Fetching public European government bond curves...", flush=True)
+    public_curves, public_errors = fetch_public_european_curves(start, end)
+    macromicro_enabled = bool(os.getenv("MACROMICRO_API_KEY"))
+
     def fetch_macromicro(item):
         key, (stat_id, country, tenor) = item
         try:
@@ -611,18 +767,40 @@ def build_european_bonds(core_series, previous, start: date, end: date):
         except Exception as exc:
             return key, [], f"MacroMicro 暂不可用（{type(exc).__name__}）"
 
-    print("Fetching licensed European government bond curves...", flush=True)
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        results = list(pool.map(fetch_macromicro, MACROMICRO_EUROPEAN_BONDS.items()))
-    for key, points, error in results:
-        stat_id, country, tenor = MACROMICRO_EUROPEAN_BONDS[key]
+    licensed_items = [(key, spec) for key, spec in MACROMICRO_EUROPEAN_BONDS.items()
+                      if key not in public_curves and macromicro_enabled]
+    if licensed_items:
+        print("Fetching licensed European government bond gaps...", flush=True)
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            licensed_results = {key: (points, error)
+                                for key, points, error in pool.map(fetch_macromicro, licensed_items)}
+    else:
+        licensed_results = {}
+
+    for key, (stat_id, country, tenor) in MACROMICRO_EUROPEAN_BONDS.items():
+        public = public_curves.get(key)
+        if public:
+            points, error = public["points"], None
+            source, source_url, note = public["source"], public["source_url"], public["note"]
+            symbol = f"official:{key}"
+        elif key in licensed_results:
+            points, error = licensed_results[key]
+            source, source_url = "MacroMicro 授权接口", f"https://en.macromicro.me/series/{stat_id}"
+            note = "滚动基准国债收益率；不对休市日或缺失观测前向填充。"
+            symbol = f"MacroMicro {stat_id}"
+        else:
+            points = []
+            error = public_errors.get(key[:2], "暂无可自动读取且允许再发布的官方公开序列")
+            source, source_url = "官方公开源待补", ""
+            note = "该期限暂缺可稳定自动读取的官方公开时间序列；不以抓取或合成值补齐。"
+            symbol = f"official:{key}:unavailable"
         european[key] = make_series({
-            "name": f"{country} {tenor} 国债收益率", "symbol": f"MacroMicro {stat_id}",
-            "unit": "%", "frequency": "daily", "source": "MacroMicro 授权接口",
-            "source_url": f"https://en.macromicro.me/series/{stat_id}",
+            "name": f"{country} {tenor} 国债收益率", "symbol": symbol,
+            "unit": "%", "frequency": "daily", "source": source,
+            "source_url": source_url,
             "stale_business_days": 2,
-            "note": "滚动基准国债收益率；不对休市日或缺失观测前向填充。",
-        }, points, old_series.get(key, {}), start, end, error or "MacroMicro 无有效观测")
+            "note": note,
+        }, points, old_series.get(key, {}), start, end, error or f"{source}无有效观测")
 
     official_specs = {
         "gr_1y": (fetch_greece_1y_auctions, {
