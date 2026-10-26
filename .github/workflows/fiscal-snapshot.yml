@@ -14,7 +14,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: fiscal-fallback-snapshot
+  # This job also commits data.json; serialize every snapshot writer.
+  group: macro-data-update
   cancel-in-progress: false
 
 jobs:
