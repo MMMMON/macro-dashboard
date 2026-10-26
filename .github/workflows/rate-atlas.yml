@@ -15,7 +15,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: rate-atlas-update
+  # Both jobs commit data.json; serialize them to prevent rebase conflicts.
+  group: macro-data-update
   cancel-in-progress: false
 
 jobs:
