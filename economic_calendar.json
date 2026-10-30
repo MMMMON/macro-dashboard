@@ -1,7 +1,7 @@
 {
   "weekStart": "2026-10-26",
   "weekEnd": "2026-11-01",
-  "generatedAt": "2026-10-30T00:01:05.379118Z",
+  "generatedAt": "2026-10-30T17:00:19.609262Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
@@ -302,13 +302,27 @@
       ]
     },
     {
+      "title": "BOJ Outlook Report",
+      "country": "JPY",
+      "impact": "High",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-10-30T03:02:00Z",
+      "allDay": false,
+      "tags": [
+        "JPY",
+        "high"
+      ]
+    },
+    {
       "title": "BOJ Policy Rate",
       "country": "JPY",
       "impact": "High",
       "forecast": "<1.25%",
       "previous": "<1.25%",
       "url": "",
-      "timestamp": "2026-10-30T02:30:00Z",
+      "timestamp": "2026-10-30T03:02:00Z",
       "allDay": false,
       "tags": [
         "JPY",
@@ -322,21 +336,7 @@
       "forecast": "—",
       "previous": "—",
       "url": "",
-      "timestamp": "2026-10-30T02:30:00Z",
-      "allDay": false,
-      "tags": [
-        "JPY",
-        "high"
-      ]
-    },
-    {
-      "title": "BOJ Outlook Report",
-      "country": "JPY",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-10-30T02:31:00Z",
+      "timestamp": "2026-10-30T03:02:00Z",
       "allDay": false,
       "tags": [
         "JPY",
@@ -350,7 +350,7 @@
       "forecast": "—",
       "previous": "—",
       "url": "",
-      "timestamp": "2026-10-30T05:30:00Z",
+      "timestamp": "2026-10-30T06:30:00Z",
       "allDay": false,
       "tags": [
         "JPY",
