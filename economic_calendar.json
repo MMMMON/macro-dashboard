@@ -1,132 +1,297 @@
 {
-  "weekStart": "2026-10-26",
-  "weekEnd": "2026-11-01",
-  "generatedAt": "2026-10-30T17:00:19.609262Z",
+  "weekStart": "2026-11-02",
+  "weekEnd": "2026-11-08",
+  "generatedAt": "2026-11-02T00:01:05.098303Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
     {
-      "title": "BRC Shop Price Index y/y",
-      "country": "GBP",
+      "title": "MI Inflation Gauge m/m",
+      "country": "AUD",
       "impact": "Low",
-      "forecast": "1.6%",
-      "previous": "1.4%",
+      "forecast": "—",
+      "previous": "0.3%",
       "url": "",
-      "timestamp": "2026-10-27T00:01:00Z",
+      "timestamp": "2026-11-02T00:00:00Z",
       "allDay": false,
       "tags": [
-        "GBP",
+        "AUD",
         "inflation"
       ]
     },
     {
-      "title": "BOJ Core CPI y/y",
+      "title": "Final Manufacturing PMI",
       "country": "JPY",
       "impact": "Low",
-      "forecast": "1.9%",
-      "previous": "1.8%",
+      "forecast": "53.3",
+      "previous": "53.3",
       "url": "",
-      "timestamp": "2026-10-27T05:00:00Z",
+      "timestamp": "2026-11-02T00:30:00Z",
       "allDay": false,
       "tags": [
         "JPY",
+        "pmi"
+      ]
+    },
+    {
+      "title": "RatingDog Manufacturing PMI",
+      "country": "CNY",
+      "impact": "Low",
+      "forecast": "52.0",
+      "previous": "52.1",
+      "url": "",
+      "timestamp": "2026-11-02T01:45:00Z",
+      "allDay": false,
+      "tags": [
+        "CNY",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Spanish Manufacturing PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "50.4",
+      "previous": "51.0",
+      "url": "",
+      "timestamp": "2026-11-02T08:15:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Manufacturing PMI",
+      "country": "CHF",
+      "impact": "Low",
+      "forecast": "55.3",
+      "previous": "55.3",
+      "url": "",
+      "timestamp": "2026-11-02T08:30:00Z",
+      "allDay": false,
+      "tags": [
+        "CHF",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Italian Manufacturing PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "49.9",
+      "previous": "50.4",
+      "url": "",
+      "timestamp": "2026-11-02T08:45:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "French Final Manufacturing PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "49.3",
+      "previous": "49.3",
+      "url": "",
+      "timestamp": "2026-11-02T08:50:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "German Final Manufacturing PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "54.2",
+      "previous": "54.2",
+      "url": "",
+      "timestamp": "2026-11-02T08:55:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Final Manufacturing PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "52.4",
+      "previous": "52.4",
+      "url": "",
+      "timestamp": "2026-11-02T09:00:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Final Manufacturing PMI",
+      "country": "GBP",
+      "impact": "Low",
+      "forecast": "52.8",
+      "previous": "52.8",
+      "url": "",
+      "timestamp": "2026-11-02T09:30:00Z",
+      "allDay": false,
+      "tags": [
+        "GBP",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Final Manufacturing PMI",
+      "country": "USD",
+      "impact": "Low",
+      "forecast": "56.0",
+      "previous": "56.0",
+      "url": "",
+      "timestamp": "2026-11-02T14:45:00Z",
+      "allDay": false,
+      "tags": [
+        "USD",
+        "pmi"
+      ]
+    },
+    {
+      "title": "ISM Manufacturing PMI",
+      "country": "USD",
+      "impact": "Medium",
+      "forecast": "54.5",
+      "previous": "54.5",
+      "url": "",
+      "timestamp": "2026-11-02T15:00:00Z",
+      "allDay": false,
+      "tags": [
+        "USD",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Cash Rate",
+      "country": "AUD",
+      "impact": "High",
+      "forecast": "4.85%",
+      "previous": "4.60%",
+      "url": "",
+      "timestamp": "2026-11-03T03:30:00Z",
+      "allDay": false,
+      "tags": [
+        "AUD",
+        "high"
+      ]
+    },
+    {
+      "title": "RBA Monetary Policy Statement",
+      "country": "AUD",
+      "impact": "High",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-11-03T03:30:00Z",
+      "allDay": false,
+      "tags": [
+        "AUD",
+        "high"
+      ]
+    },
+    {
+      "title": "RBA Rate Statement",
+      "country": "AUD",
+      "impact": "High",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-11-03T03:30:00Z",
+      "allDay": false,
+      "tags": [
+        "AUD",
+        "high"
+      ]
+    },
+    {
+      "title": "RBA Press Conference",
+      "country": "AUD",
+      "impact": "High",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-11-03T04:30:00Z",
+      "allDay": false,
+      "tags": [
+        "AUD",
+        "high"
+      ]
+    },
+    {
+      "title": "CPI m/m",
+      "country": "CHF",
+      "impact": "Medium",
+      "forecast": "0.0%",
+      "previous": "0.0%",
+      "url": "",
+      "timestamp": "2026-11-03T07:30:00Z",
+      "allDay": false,
+      "tags": [
+        "CHF",
         "inflation"
       ]
     },
     {
-      "title": "CB Consumer Confidence",
+      "title": "JOLTS Job Openings",
       "country": "USD",
       "impact": "Medium",
-      "forecast": "81.2",
-      "previous": "81.9",
+      "forecast": "7.11M",
+      "previous": "7.08M",
       "url": "",
-      "timestamp": "2026-10-27T14:00:00Z",
+      "timestamp": "2026-11-03T15:00:00Z",
       "allDay": false,
       "tags": [
         "USD"
       ]
     },
     {
-      "title": "CPI m/m",
-      "country": "AUD",
-      "impact": "High",
-      "forecast": "0.7%",
-      "previous": "0.4%",
-      "url": "",
-      "timestamp": "2026-10-28T00:30:00Z",
-      "allDay": false,
-      "tags": [
-        "AUD",
-        "high",
-        "inflation"
-      ]
-    },
-    {
-      "title": "CPI y/y",
-      "country": "AUD",
-      "impact": "High",
-      "forecast": "4.2%",
-      "previous": "4.0%",
-      "url": "",
-      "timestamp": "2026-10-28T00:30:00Z",
-      "allDay": false,
-      "tags": [
-        "AUD",
-        "high",
-        "inflation"
-      ]
-    },
-    {
-      "title": "Trimmed Mean CPI m/m",
-      "country": "AUD",
-      "impact": "High",
-      "forecast": "0.3%",
-      "previous": "0.2%",
-      "url": "",
-      "timestamp": "2026-10-28T00:30:00Z",
-      "allDay": false,
-      "tags": [
-        "AUD",
-        "high",
-        "inflation"
-      ]
-    },
-    {
-      "title": "Official Cash Rate",
-      "country": "NZD",
-      "impact": "High",
-      "forecast": "3.00%",
-      "previous": "2.75%",
-      "url": "",
-      "timestamp": "2026-10-28T01:00:00Z",
-      "allDay": false,
-      "tags": [
-        "NZD",
-        "high"
-      ]
-    },
-    {
-      "title": "RBNZ Rate Statement",
-      "country": "NZD",
+      "title": "Congressional Elections",
+      "country": "USD",
       "impact": "High",
       "forecast": "—",
       "previous": "—",
       "url": "",
-      "timestamp": "2026-10-28T01:00:00Z",
+      "timestamp": "2026-11-03T15:16:00Z",
       "allDay": false,
       "tags": [
-        "NZD",
+        "USD",
         "high"
       ]
     },
     {
-      "title": "RBNZ Press Conference",
+      "title": "GDT Price Index",
+      "country": "NZD",
+      "impact": "Low",
+      "forecast": "—",
+      "previous": "2.5%",
+      "url": "",
+      "timestamp": "2026-11-03T15:50:00Z",
+      "allDay": false,
+      "tags": [
+        "NZD",
+        "inflation"
+      ]
+    },
+    {
+      "title": "Employment Change q/q",
       "country": "NZD",
       "impact": "High",
-      "forecast": "—",
-      "previous": "—",
+      "forecast": "0.4%",
+      "previous": "0.5%",
       "url": "",
-      "timestamp": "2026-10-28T02:00:00Z",
+      "timestamp": "2026-11-03T21:45:00Z",
       "allDay": false,
       "tags": [
         "NZD",
@@ -134,13 +299,195 @@
       ]
     },
     {
-      "title": "Annual Budget Release",
+      "title": "Unemployment Rate",
+      "country": "NZD",
+      "impact": "High",
+      "forecast": "5.5%",
+      "previous": "5.6%",
+      "url": "",
+      "timestamp": "2026-11-03T21:45:00Z",
+      "allDay": false,
+      "tags": [
+        "NZD",
+        "high"
+      ]
+    },
+    {
+      "title": "RatingDog Services PMI",
+      "country": "CNY",
+      "impact": "Low",
+      "forecast": "51.5",
+      "previous": "51.6",
+      "url": "",
+      "timestamp": "2026-11-04T01:45:00Z",
+      "allDay": false,
+      "tags": [
+        "CNY",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Spanish Services PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "57.5",
+      "previous": "58.3",
+      "url": "",
+      "timestamp": "2026-11-04T08:15:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Italian Services PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "51.0",
+      "previous": "51.7",
+      "url": "",
+      "timestamp": "2026-11-04T08:45:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "French Final Services PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "48.4",
+      "previous": "48.4",
+      "url": "",
+      "timestamp": "2026-11-04T08:50:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "German Final Services PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "51.7",
+      "previous": "51.7",
+      "url": "",
+      "timestamp": "2026-11-04T08:55:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Final Services PMI",
+      "country": "EUR",
+      "impact": "Low",
+      "forecast": "51.7",
+      "previous": "51.7",
+      "url": "",
+      "timestamp": "2026-11-04T09:00:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Final Services PMI",
+      "country": "GBP",
+      "impact": "Low",
+      "forecast": "53.1",
+      "previous": "53.1",
+      "url": "",
+      "timestamp": "2026-11-04T09:30:00Z",
+      "allDay": false,
+      "tags": [
+        "GBP",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Core CPI Flash Estimate y/y",
+      "country": "EUR",
+      "impact": "Medium",
+      "forecast": "2.5%",
+      "previous": "2.5%",
+      "url": "",
+      "timestamp": "2026-11-04T10:00:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "inflation"
+      ]
+    },
+    {
+      "title": "CPI Flash Estimate y/y",
+      "country": "EUR",
+      "impact": "Medium",
+      "forecast": "4.0%",
+      "previous": "3.8%",
+      "url": "",
+      "timestamp": "2026-11-04T10:00:00Z",
+      "allDay": false,
+      "tags": [
+        "EUR",
+        "inflation"
+      ]
+    },
+    {
+      "title": "Final Services PMI",
+      "country": "USD",
+      "impact": "Low",
+      "forecast": "57.9",
+      "previous": "57.9",
+      "url": "",
+      "timestamp": "2026-11-04T14:45:00Z",
+      "allDay": false,
+      "tags": [
+        "USD",
+        "pmi"
+      ]
+    },
+    {
+      "title": "ISM Services PMI",
+      "country": "USD",
+      "impact": "Medium",
+      "forecast": "54.9",
+      "previous": "54.9",
+      "url": "",
+      "timestamp": "2026-11-04T15:00:00Z",
+      "allDay": false,
+      "tags": [
+        "USD",
+        "pmi"
+      ]
+    },
+    {
+      "title": "Construction PMI",
+      "country": "GBP",
+      "impact": "Low",
+      "forecast": "46.5",
+      "previous": "46.1",
+      "url": "",
+      "timestamp": "2026-11-05T09:30:00Z",
+      "allDay": false,
+      "tags": [
+        "GBP",
+        "pmi"
+      ]
+    },
+    {
+      "title": "BOE Monetary Policy Report",
       "country": "GBP",
       "impact": "High",
       "forecast": "—",
       "previous": "—",
       "url": "",
-      "timestamp": "2026-10-28T12:30:00Z",
+      "timestamp": "2026-11-05T12:00:00Z",
       "allDay": false,
       "tags": [
         "GBP",
@@ -148,352 +495,171 @@
       ]
     },
     {
-      "title": "Federal Funds Rate",
-      "country": "USD",
+      "title": "Monetary Policy Summary",
+      "country": "GBP",
+      "impact": "High",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-11-05T12:00:00Z",
+      "allDay": false,
+      "tags": [
+        "GBP",
+        "high"
+      ]
+    },
+    {
+      "title": "MPC Official Bank Rate Votes",
+      "country": "GBP",
+      "impact": "High",
+      "forecast": "7-0-2",
+      "previous": "3-0-6",
+      "url": "",
+      "timestamp": "2026-11-05T12:00:00Z",
+      "allDay": false,
+      "tags": [
+        "GBP",
+        "high"
+      ]
+    },
+    {
+      "title": "Official Bank Rate",
+      "country": "GBP",
       "impact": "High",
       "forecast": "4.00%",
-      "previous": "4.00%",
+      "previous": "3.75%",
       "url": "",
-      "timestamp": "2026-10-28T18:00:00Z",
+      "timestamp": "2026-11-05T12:00:00Z",
       "allDay": false,
       "tags": [
-        "USD",
+        "GBP",
         "high"
       ]
     },
     {
-      "title": "FOMC Statement",
-      "country": "USD",
+      "title": "BOE Gov Bailey Speaks",
+      "country": "GBP",
       "impact": "High",
       "forecast": "—",
       "previous": "—",
       "url": "",
-      "timestamp": "2026-10-28T18:00:00Z",
+      "timestamp": "2026-11-05T12:30:00Z",
       "allDay": false,
       "tags": [
-        "USD",
+        "GBP",
         "high"
-      ]
-    },
-    {
-      "title": "FOMC Press Conference",
-      "country": "USD",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-10-28T18:30:00Z",
-      "allDay": false,
-      "tags": [
-        "USD",
-        "high"
-      ]
-    },
-    {
-      "title": "Advance GDP q/q",
-      "country": "USD",
-      "impact": "High",
-      "forecast": "3.2%",
-      "previous": "1.5%",
-      "url": "",
-      "timestamp": "2026-10-29T12:30:00Z",
-      "allDay": false,
-      "tags": [
-        "USD",
-        "high"
-      ]
-    },
-    {
-      "title": "Core PCE Price Index m/m",
-      "country": "USD",
-      "impact": "High",
-      "forecast": "0.3%",
-      "previous": "0.2%",
-      "url": "",
-      "timestamp": "2026-10-29T12:30:00Z",
-      "allDay": false,
-      "tags": [
-        "USD",
-        "high",
-        "inflation"
-      ]
-    },
-    {
-      "title": "Advance GDP Price Index q/q",
-      "country": "USD",
-      "impact": "Medium",
-      "forecast": "3.2%",
-      "previous": "6.2%",
-      "url": "",
-      "timestamp": "2026-10-29T12:30:00Z",
-      "allDay": false,
-      "tags": [
-        "USD",
-        "inflation"
       ]
     },
     {
       "title": "Unemployment Claims",
       "country": "USD",
       "impact": "Medium",
-      "forecast": "198K",
+      "forecast": "197K",
       "previous": "194K",
       "url": "",
-      "timestamp": "2026-10-29T12:30:00Z",
+      "timestamp": "2026-11-05T13:30:00Z",
       "allDay": false,
       "tags": [
         "USD"
       ]
     },
     {
-      "title": "Main Refinancing Rate",
-      "country": "EUR",
-      "impact": "High",
-      "forecast": "2.65%",
-      "previous": "2.65%",
-      "url": "",
-      "timestamp": "2026-10-29T13:15:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR",
-        "high"
-      ]
-    },
-    {
-      "title": "Monetary Policy Statement",
-      "country": "EUR",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-10-29T13:15:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR",
-        "high"
-      ]
-    },
-    {
-      "title": "ECB Press Conference",
-      "country": "EUR",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-10-29T13:45:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR",
-        "high"
-      ]
-    },
-    {
-      "title": "Tokyo Core CPI y/y",
-      "country": "JPY",
-      "impact": "Medium",
-      "forecast": "2.6%",
-      "previous": "2.7%",
-      "url": "",
-      "timestamp": "2026-10-29T23:30:00Z",
-      "allDay": false,
-      "tags": [
-        "JPY",
-        "inflation"
-      ]
-    },
-    {
-      "title": "BOJ Outlook Report",
-      "country": "JPY",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-10-30T03:02:00Z",
-      "allDay": false,
-      "tags": [
-        "JPY",
-        "high"
-      ]
-    },
-    {
-      "title": "BOJ Policy Rate",
-      "country": "JPY",
-      "impact": "High",
-      "forecast": "<1.25%",
-      "previous": "<1.25%",
-      "url": "",
-      "timestamp": "2026-10-30T03:02:00Z",
-      "allDay": false,
-      "tags": [
-        "JPY",
-        "high"
-      ]
-    },
-    {
-      "title": "Monetary Policy Statement",
-      "country": "JPY",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-10-30T03:02:00Z",
-      "allDay": false,
-      "tags": [
-        "JPY",
-        "high"
-      ]
-    },
-    {
-      "title": "BOJ Press Conference",
-      "country": "JPY",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-10-30T06:30:00Z",
-      "allDay": false,
-      "tags": [
-        "JPY",
-        "high"
-      ]
-    },
-    {
-      "title": "German Prelim CPI m/m",
-      "country": "EUR",
-      "impact": "Medium",
-      "forecast": "0.1%",
-      "previous": "0.6%",
-      "url": "",
-      "timestamp": "2026-10-30T07:29:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR",
-        "inflation"
-      ]
-    },
-    {
-      "title": "French Prelim CPI m/m",
-      "country": "EUR",
-      "impact": "Low",
-      "forecast": "0.2%",
-      "previous": "-0.3%",
-      "url": "",
-      "timestamp": "2026-10-30T07:45:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR",
-        "inflation"
-      ]
-    },
-    {
-      "title": "Spanish Flash CPI y/y",
-      "country": "EUR",
-      "impact": "Low",
-      "forecast": "4.9%",
-      "previous": "4.9%",
-      "url": "",
-      "timestamp": "2026-10-30T08:00:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR",
-        "inflation"
-      ]
-    },
-    {
-      "title": "German Prelim GDP q/q",
-      "country": "EUR",
-      "impact": "Medium",
-      "forecast": "0.1%",
-      "previous": "0.2%",
-      "url": "",
-      "timestamp": "2026-10-30T09:00:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR"
-      ]
-    },
-    {
-      "title": "Italian Prelim CPI m/m",
-      "country": "EUR",
-      "impact": "Low",
-      "forecast": "0.1%",
-      "previous": "0.7%",
-      "url": "",
-      "timestamp": "2026-10-30T10:00:00Z",
-      "allDay": false,
-      "tags": [
-        "EUR",
-        "inflation"
-      ]
-    },
-    {
-      "title": "Employment Cost Index q/q",
+      "title": "Average Hourly Earnings m/m",
       "country": "USD",
-      "impact": "Medium",
-      "forecast": "0.8%",
-      "previous": "0.9%",
+      "impact": "High",
+      "forecast": "0.3%",
+      "previous": "0.1%",
       "url": "",
-      "timestamp": "2026-10-30T12:30:00Z",
-      "allDay": false,
-      "tags": [
-        "USD"
-      ]
-    },
-    {
-      "title": "Chicago PMI",
-      "country": "USD",
-      "impact": "Low",
-      "forecast": "55.8",
-      "previous": "58.8",
-      "url": "",
-      "timestamp": "2026-10-30T13:45:00Z",
+      "timestamp": "2026-11-06T13:30:00Z",
       "allDay": false,
       "tags": [
         "USD",
-        "pmi"
+        "high"
       ]
     },
     {
-      "title": "Manufacturing PMI",
-      "country": "CNY",
-      "impact": "Low",
-      "forecast": "49.9",
-      "previous": "50.1",
+      "title": "Non-Farm Employment Change",
+      "country": "USD",
+      "impact": "High",
+      "forecast": "63K",
+      "previous": "29K",
       "url": "",
-      "timestamp": "2026-10-31T01:30:00Z",
+      "timestamp": "2026-11-06T13:30:00Z",
       "allDay": false,
       "tags": [
-        "CNY",
-        "pmi"
+        "USD",
+        "high"
       ]
     },
     {
-      "title": "Non-Manufacturing PMI",
-      "country": "CNY",
-      "impact": "Low",
-      "forecast": "50.0",
-      "previous": "50.2",
+      "title": "Unemployment Rate",
+      "country": "USD",
+      "impact": "High",
+      "forecast": "4.2%",
+      "previous": "4.2%",
       "url": "",
-      "timestamp": "2026-10-31T01:30:00Z",
+      "timestamp": "2026-11-06T13:30:00Z",
       "allDay": false,
       "tags": [
-        "CNY",
-        "pmi"
+        "USD",
+        "high"
+      ]
+    },
+    {
+      "title": "Prelim UoM Inflation Expectations",
+      "country": "USD",
+      "impact": "Medium",
+      "forecast": "—",
+      "previous": "4.7%",
+      "url": "",
+      "timestamp": "2026-11-06T15:00:00Z",
+      "allDay": false,
+      "tags": [
+        "USD",
+        "inflation"
+      ]
+    },
+    {
+      "title": "BOJ Gov Ueda Speaks",
+      "country": "JPY",
+      "impact": "High",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-11-06T16:00:00Z",
+      "allDay": false,
+      "tags": [
+        "JPY",
+        "high"
+      ]
+    },
+    {
+      "title": "Parliamentary Elections",
+      "country": "NZD",
+      "impact": "High",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-11-06T21:45:00Z",
+      "allDay": false,
+      "tags": [
+        "NZD",
+        "high"
       ]
     }
   ],
   "focus": {
     "mainLine": {
-      "title": "通胀路径再定价",
-      "detail": "周四 13:30 美国核心 PCE 物价指数；周三 02:00 新西兰Official 现金利率决议"
+      "title": "就业市场压力测试",
+      "detail": "周五 14:30 美国非农就业人数；周二 04:30 澳大利亚现金利率决议"
     },
     "policyFocus": {
-      "title": "新西兰Official 现金利率决议 · 周三 02:00",
-      "detail": "预期 3.00%，前值 2.75%"
+      "title": "澳大利亚现金利率决议 · 周二 04:30",
+      "detail": "预期 4.85%，前值 4.60%"
     },
     "specialAttention": {
-      "title": "美国核心 PCE 物价指数 · 周四 13:30",
-      "detail": "预期 0.3%，前值 0.2%"
+      "title": "美国非农就业人数 · 周五 14:30",
+      "detail": "预期 63K，前值 29K"
     }
   }
 }
