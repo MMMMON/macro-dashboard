@@ -1,7 +1,7 @@
 {
   "weekStart": "2026-11-02",
   "weekEnd": "2026-11-08",
-  "generatedAt": "2026-11-02T00:01:05.098303Z",
+  "generatedAt": "2026-11-03T00:01:04.089866Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
@@ -247,7 +247,7 @@
       "title": "JOLTS Job Openings",
       "country": "USD",
       "impact": "Medium",
-      "forecast": "7.11M",
+      "forecast": "7.15M",
       "previous": "7.08M",
       "url": "",
       "timestamp": "2026-11-03T15:00:00Z",
@@ -316,7 +316,7 @@
       "title": "RatingDog Services PMI",
       "country": "CNY",
       "impact": "Low",
-      "forecast": "51.5",
+      "forecast": "51.7",
       "previous": "51.6",
       "url": "",
       "timestamp": "2026-11-04T01:45:00Z",
@@ -330,7 +330,7 @@
       "title": "Spanish Services PMI",
       "country": "EUR",
       "impact": "Low",
-      "forecast": "57.5",
+      "forecast": "57.6",
       "previous": "58.3",
       "url": "",
       "timestamp": "2026-11-04T08:15:00Z",
@@ -344,7 +344,7 @@
       "title": "Italian Services PMI",
       "country": "EUR",
       "impact": "Low",
-      "forecast": "51.0",
+      "forecast": "51.4",
       "previous": "51.7",
       "url": "",
       "timestamp": "2026-11-04T08:45:00Z",
@@ -456,7 +456,7 @@
       "title": "ISM Services PMI",
       "country": "USD",
       "impact": "Medium",
-      "forecast": "54.9",
+      "forecast": "54.8",
       "previous": "54.9",
       "url": "",
       "timestamp": "2026-11-04T15:00:00Z",
@@ -470,7 +470,7 @@
       "title": "Construction PMI",
       "country": "GBP",
       "impact": "Low",
-      "forecast": "46.5",
+      "forecast": "46.4",
       "previous": "46.1",
       "url": "",
       "timestamp": "2026-11-05T09:30:00Z",
@@ -581,7 +581,7 @@
       "title": "Non-Farm Employment Change",
       "country": "USD",
       "impact": "High",
-      "forecast": "63K",
+      "forecast": "65K",
       "previous": "29K",
       "url": "",
       "timestamp": "2026-11-06T13:30:00Z",
@@ -659,7 +659,7 @@
     },
     "specialAttention": {
       "title": "美国非农就业人数 · 周五 14:30",
-      "detail": "预期 63K，前值 29K"
+      "detail": "预期 65K，前值 29K"
     }
   }
 }
