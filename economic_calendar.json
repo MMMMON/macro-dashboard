@@ -1,7 +1,7 @@
 {
   "weekStart": "2026-11-02",
   "weekEnd": "2026-11-08",
-  "generatedAt": "2026-11-03T00:01:04.089866Z",
+  "generatedAt": "2026-11-04T00:01:05.161276Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
@@ -277,7 +277,7 @@
       "forecast": "—",
       "previous": "2.5%",
       "url": "",
-      "timestamp": "2026-11-03T15:50:00Z",
+      "timestamp": "2026-11-03T15:27:00Z",
       "allDay": false,
       "tags": [
         "NZD",
