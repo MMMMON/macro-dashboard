@@ -76,17 +76,28 @@ def build_payload():
             average_interest = {"date": item["record_date"], "value": number(item["avg_interest_rate_amt"]), "security": item["security_desc"]}
     except Exception as exc:
         errors.append(f"Average interest: {exc}")
+    auction_history = []
     try:
-        rows = fiscal("v1/accounting/od/auctions_query?sort=-auction_date&page%5Bsize%5D=100")["data"]
-        for item in [row for row in rows if str(row.get("security_term", "")).startswith(("10-Year", "20-Year", "30-Year"))][:12]:
-            accepted = number(item.get("total_accepted")) or number(item.get("offering_amt")) or 0
-            indirect, direct, dealer = number(item.get("indirect_bidder_accepted")), number(item.get("direct_bidder_accepted")), number(item.get("primary_dealer_accepted"))
-            indirect_share = indirect / accepted * 100 if accepted and indirect is not None else None
-            direct_share = direct / accepted * 100 if accepted and direct is not None else None
-            dealer_share = dealer / accepted * 100 if accepted and dealer is not None else None
-            btc = number(item.get("bid_to_cover_ratio"))
-            stress = None if btc is None else max(0, min(100, 50 + (2.5 - btc) * 45 + (0 if dealer_share is None else (dealer_share - 12) * 1.2) + (0 if indirect_share is None else (65 - indirect_share) * .45)))
-            auctions.append({"term": item.get("security_term"), "auctionDate": item.get("auction_date"), "offering": number(item.get("offering_amt")), "highYield": number(item.get("high_yield")), "bidToCover": btc, "indirectShare": indirect_share, "directShare": direct_share, "dealerShare": dealer_share, "stress": stress})
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        rows = []
+        for security_type in ["Note", "Bond"]:
+            query = urllib.parse.urlencode({"type": security_type, "competitiveAuctionCloseDate": f"2020-01-01,{today}", "format": "json"})
+            rows.extend(json.loads(request("https://www.treasurydirect.gov/TA_WS/securities/search?" + query).decode("utf-8")))
+        for row in rows:
+            term = row.get("originalSecurityTerm")
+            date = str(row.get("competitiveAuctionCloseDate") or row.get("auctionDate") or "")[:10]
+            high, btc = number(row.get("highYield")), number(row.get("bidToCoverRatio"))
+            if term not in ("10-Year", "20-Year", "30-Year") or row.get("inflationProtected") != "No" or not "2020-01-01" <= date <= today or high is None or btc is None or btc <= 0:
+                continue
+            accepted = number(row.get("subtotalCompetitiveParAwardedInsideOfOfferingAmount"))
+            def share(key):
+                value = number(row.get(key))
+                return value / accepted * 100 if accepted and accepted > 0 and value is not None else None
+            indirect, direct, dealer = share("indirectBiddersCompetitiveParAwarded"), share("directBiddersCompetitiveParAwarded"), share("primaryDealersCompetitiveParAwarded")
+            stress = None if indirect is None or dealer is None else max(0, min(100, 50 + (2.5-btc)*45 + (dealer-12)*1.2 + (65-indirect)*.45))
+            auction_history.append({"term": term, "auctionDate": date, "cusip": row.get("cusip"), "securityTerm": row.get("securityTerm"), "reopening": row.get("reopening") == "Yes", "offering": number(row.get("offeringAmount")), "highYield": high, "bidToCover": btc, "indirectShare": indirect, "directShare": direct, "dealerShare": dealer, "stress": stress, "shareBasis": "competitive-awards", "tail": None})
+        auction_history.sort(key=lambda row: row["auctionDate"], reverse=True)
+        auctions = [next(row for row in auction_history if row["term"] == term) for term in ["10-Year", "20-Year", "30-Year"]]
     except Exception as exc:
         errors.append(f"Auctions: {exc}")
 
@@ -95,11 +106,19 @@ def build_payload():
     if any(message.startswith("Debt:") for message in errors): status["debt"] = {"state": "stale"}
     if any(message.startswith("Average interest:") for message in errors): status["averageInterest"] = {"state": "stale"}
     if any(message.startswith("Auctions:") for message in errors): status["auctions"] = {"state": "stale"}
-    return {"series": series, "debt": debt, "averageInterest": average_interest, "auctions": auctions, "sourceStatus": status, "errors": errors}
+    return {"series": series, "debt": debt, "averageInterest": average_interest, "auctions": auctions, "auctionHistory": auction_history, "sourceStatus": status, "errors": errors}
 
 
 def main():
     payload = build_payload()
+    try:
+        with open(OUTPUT, encoding="utf-8") as handle:
+            previous = json.load(handle)
+        if payload["sourceStatus"]["auctions"]["state"] != "success":
+            payload["auctionHistory"] = previous.get("auctionHistory", [])
+            payload["auctions"] = previous.get("auctions", [])
+    except (OSError, ValueError):
+        pass
     payload["generatedAt"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     with open(OUTPUT, "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
