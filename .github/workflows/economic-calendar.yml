@@ -9,7 +9,10 @@ on:
       - .github/workflows/economic-calendar.yml
   schedule:
     # Sunday 01:00 Asia/Shanghai is Saturday 17:00 UTC year-round.
-    - cron: '0 17 * * 6'
+    - cron: '0 17,21 * * 6'
+    - cron: '0 1,5,9,13,17,21 * * 0'
+    # Final check: Monday 08:00 Asia/Shanghai.
+    - cron: '0 0 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -33,6 +36,8 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: '3.12'
+      - name: Test calendar update behavior
+        run: python -m unittest discover -s tests -p test_economic_calendar.py
       - name: Fetch or revalidate the current week
         run: python -u fetch_economic_calendar.py ${{ github.event_name == 'schedule' && '--scheduled' || '' }}
       - name: Commit changed calendar and push

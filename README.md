@@ -187,3 +187,9 @@ npm run build
 - [Lightweight Charts](https://tradingview.github.io/lightweight-charts/)
 
 页面保留 TradingView 的图表署名、链接以及随构建输出的开源许可证。公开使用上游金融数据时请遵守各数据提供方的使用条款。
+
+### 每周经济日历更新
+
+首次尝试为北京时间周日 01:00，之后每四小时补抓，周一 08:00 最后检查。GitHub 调度延迟不会使任务跳过。仅当上游有效事件仍全部属于上一周时，截止前标记 `WAITING` 并保持文件不变；截止后仍无目标周数据则失败。网络故障、格式错误和筛选为空分别报告，保留原文件；缓存复用须验证周次及事件日期，不刷新抓取时间。Actions 摘要区分 `UPDATED`、`UNCHANGED`、`WAITING`、`FAILED`。事件继续按柏林日期归周，发布采用原子替换，内容未变不生成提交。
+
+回归检查：`python -m unittest discover -s tests -p test_economic_calendar.py`。

@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import tempfile
 import re
 import time
 import urllib.request
@@ -170,6 +172,37 @@ def target_week(now: datetime) -> tuple[datetime, datetime]:
     return monday, monday + timedelta(days=6)
 
 
+class FeedUnavailable(RuntimeError):
+    pass
+
+
+class FeedFormatError(RuntimeError):
+    pass
+
+
+class NoMatchingEvents(RuntimeError):
+    pass
+
+
+def dated_rows(rows: object) -> list[datetime]:
+    if not isinstance(rows, list) or not rows:
+        raise FeedFormatError("Feed must be a nonempty list of events")
+    dates = []
+    for row in rows:
+        if not isinstance(row, dict):
+            raise FeedFormatError("Feed event must be an object")
+        try:
+            instant = datetime.fromisoformat(str(row.get("date", "")).replace("Z", "+00:00"))
+            if instant.tzinfo is None:
+                raise ValueError("Missing timezone")
+            if not isinstance(row.get("country"), str) or not row["country"] or not isinstance(row.get("title"), str) or not row["title"].strip() or row.get("impact") not in {"High", "Medium", "Low", "Holiday"}:
+                raise ValueError("Invalid event fields")
+            dates.append(instant.astimezone(BERLIN))
+        except ValueError as exc:
+            raise FeedFormatError(f"Invalid event date or fields: {exc}") from exc
+    return dates
+
+
 def fetch_feed() -> list[dict]:
     request = urllib.request.Request(
         FEED_URL,
@@ -179,14 +212,22 @@ def fetch_feed() -> list[dict]:
     for attempt in range(3):
         try:
             with urllib.request.urlopen(request, timeout=30) as response:
-                return json.load(response)
+                try:
+                    rows = json.load(response)
+                except (ValueError, UnicodeError) as exc:
+                    raise FeedFormatError("Feed is not valid JSON") from exc
+                dated_rows(rows)
+                return rows
+        except FeedFormatError:
+            raise
         except Exception as exc:  # pragma: no cover - network retry path
             error = exc
             time.sleep(2 ** attempt)
-    raise RuntimeError(f"Forex Factory feed unavailable: {error}")
+    raise FeedUnavailable(f"Forex Factory feed unavailable: {error}")
 
 
 def normalize(rows: list[dict], now: datetime) -> dict:
+    dated_rows(rows)
     week_start, week_end = target_week(now)
     events: list[dict] = []
     for row in rows:
@@ -225,7 +266,7 @@ def normalize(rows: list[dict], now: datetime) -> dict:
         )
     events.sort(key=lambda event: event["timestamp"])
     if not events:
-        raise RuntimeError("New weekly feed contained no matching events; keeping the previous file")
+        raise NoMatchingEvents("Feed contained no matching target-week events; keeping the previous file")
     return {
         "weekStart": week_start.date().isoformat(),
         "weekEnd": week_end.date().isoformat(),
@@ -237,34 +278,77 @@ def normalize(rows: list[dict], now: datetime) -> dict:
     }
 
 
+def report(status: str, detail: str) -> None:
+    message = f"{status}: {detail}"
+    print(message)
+    if status in {"WAITING", "FAILED"}:
+        print(f"::{'warning' if status == 'WAITING' else 'error'}::{message}")
+    if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(summary, "a", encoding="utf-8") as handle:
+            handle.write(f"### Economic calendar: {status}\n\n{detail}\n\n")
+
+
+def valid_cache(now: datetime) -> dict | None:
+    try:
+        data = json.loads(OUTPUT.read_text(encoding="utf-8"))
+        start, end = target_week(now)
+        if data.get("weekStart") != start.date().isoformat() or data.get("weekEnd") != end.date().isoformat():
+            return None
+        events = data["events"]
+        normalized = normalize([dict(e, date=e["timestamp"]) for e in events], now)
+        if len(normalized["events"]) != len(events):
+            return None
+        return data
+    except (OSError, ValueError, KeyError, TypeError, AttributeError, RuntimeError):
+        return None
+
+
+def update(now: datetime) -> None:
+    try:
+        rows = fetch_feed()
+        try:
+            data = normalize(rows, now)
+        except NoMatchingEvents:
+            start, _ = target_week(now)
+            dates = dated_rows(rows)
+            previous_only = all(start.date() - timedelta(days=7) <= d.date() < start.date() for d in dates)
+            deadline = datetime.combine(start.date(), datetime.min.time(), SHANGHAI) + timedelta(hours=8)
+            if previous_only and now < deadline:
+                report("WAITING", f"Upstream still serves the previous week; target {start.date()}. Existing file preserved. Retry until {deadline.isoformat()}.")
+                return
+            raise
+        if OUTPUT.exists():
+            try:
+                old = json.loads(OUTPUT.read_text(encoding="utf-8"))
+            except (ValueError, UnicodeError):
+                old = None
+            if isinstance(old, dict) and {k: v for k, v in old.items() if k != "generatedAt"} == {k: v for k, v in data.items() if k != "generatedAt"}:
+                report("UNCHANGED", f"Validated {len(data['events'])} events for {data['weekStart']}; original timestamp preserved.")
+                return
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=OUTPUT.parent, delete=False) as handle:
+                temporary = Path(handle.name)
+                handle.write(json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + "\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temporary, OUTPUT)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
+        report("UPDATED", f"Wrote {len(data['events'])} events for {data['weekStart']} through {data['weekEnd']}.")
+    except (RuntimeError, OSError) as exc:
+        cache = valid_cache(now)
+        detail = "Validated target-week cache retained with original timestamp." if cache else "Existing file preserved; no valid target-week cache."
+        report("FAILED", f"{type(exc).__name__}: {exc}. {detail}")
+        raise
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--scheduled", action="store_true")
-    args = parser.parse_args()
-    now = datetime.now(timezone.utc)
-    china = now.astimezone(SHANGHAI)
-    if args.scheduled and not (china.weekday() == 6 and china.hour == 1):
-        print(f"Outside Sunday 01:00 Asia/Shanghai window: {china.isoformat()}")
-        return
-    try:
-        data = normalize(fetch_feed(), now)
-    except RuntimeError:
-        week_start, _ = target_week(now)
-        if not OUTPUT.exists():
-            raise
-        data = json.loads(OUTPUT.read_text(encoding="utf-8"))
-        if data.get("weekStart") != week_start.date().isoformat():
-            raise
-        data["events"] = [
-            event for event in data.get("events", [])
-            if should_keep(str(event.get("title", "")), str(event.get("impact", "Low")))
-        ]
-        if not data["events"]:
-            raise RuntimeError("Cached weekly calendar contained no matching events")
-        print("Feed rate-limited; validated and reused the current-week snapshot")
-    data["focus"] = build_focus(data["events"])
-    OUTPUT.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(f"Wrote {len(data['events'])} events for {data['weekStart']} through {data['weekEnd']}")
+    parser.add_argument("--scheduled", action="store_true", help="Compatibility flag; delayed executions also run")
+    parser.parse_args()
+    update(datetime.now(timezone.utc))
 
 
 if __name__ == "__main__":
