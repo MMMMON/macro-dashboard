@@ -5454,6 +5454,18 @@
       {
         "date": "2026-11-06",
         "value": 3.88
+      },
+      {
+        "date": "2026-11-07",
+        "value": 3.88
+      },
+      {
+        "date": "2026-11-08",
+        "value": 3.88
+      },
+      {
+        "date": "2026-11-09",
+        "value": 3.88
       }
     ],
     "THREEFYTP10": [
@@ -6111,7 +6123,7 @@
       },
       {
         "date": "2000-08-24",
-        "value": 1.0253
+        "value": 1.0254
       },
       {
         "date": "2000-08-25",
@@ -6407,7 +6419,7 @@
       },
       {
         "date": "2000-12-11",
-        "value": 0.8132
+        "value": 0.8131
       },
       {
         "date": "2000-12-12",
@@ -8947,7 +8959,7 @@
       },
       {
         "date": "2003-06-30",
-        "value": 0.7836
+        "value": 0.7835
       },
       {
         "date": "2003-07-01",
@@ -16543,7 +16555,7 @@
       },
       {
         "date": "2011-01-31",
-        "value": 0.7729
+        "value": 0.7728
       },
       {
         "date": "2011-02-01",
@@ -29423,7 +29435,7 @@
       },
       {
         "date": "2023-12-13",
-        "value": 0.2019
+        "value": 0.202
       },
       {
         "date": "2023-12-14",
@@ -30723,7 +30735,7 @@
       },
       {
         "date": "2025-04-03",
-        "value": 0.4094
+        "value": 0.4095
       },
       {
         "date": "2025-04-04",
@@ -30771,7 +30783,7 @@
       },
       {
         "date": "2025-04-22",
-        "value": 0.5668
+        "value": 0.5667
       },
       {
         "date": "2025-04-23",
@@ -31947,7 +31959,7 @@
       },
       {
         "date": "2026-06-25",
-        "value": 0.6991
+        "value": 0.6992
       },
       {
         "date": "2026-06-26",
@@ -32300,14 +32312,34 @@
       {
         "date": "2026-10-30",
         "value": 0.9089
+      },
+      {
+        "date": "2026-11-02",
+        "value": 0.9088
+      },
+      {
+        "date": "2026-11-03",
+        "value": 0.9084
+      },
+      {
+        "date": "2026-11-04",
+        "value": 0.8988
+      },
+      {
+        "date": "2026-11-05",
+        "value": 0.8693
+      },
+      {
+        "date": "2026-11-06",
+        "value": 0.8738
       }
     ]
   },
   "debt": {
-    "date": "2026-11-06",
-    "heldByPublic": 32762925356629.47,
-    "intragovernmental": 7789825662463.14,
-    "total": 40552751019092.61
+    "date": "2026-11-09",
+    "heldByPublic": 32763773414012.5,
+    "intragovernmental": 7796023175230.87,
+    "total": 40559796589243.37
   },
   "averageInterest": {
     "date": "2026-10-31",
@@ -32317,17 +32349,17 @@
   "auctions": [
     {
       "term": "10-Year",
-      "auctionDate": "2026-10-07",
-      "cusip": "91282CRF0",
-      "securityTerm": "9-Year 10-Month",
-      "reopening": true,
-      "offering": 39000000000.0,
-      "highYield": 5.3,
-      "bidToCover": 2.77,
-      "indirectShare": 80.3385131703409,
-      "directShare": 17.116578376792212,
-      "dealerShare": 2.5449084528668733,
-      "stress": 19.601559216786846,
+      "auctionDate": "2026-11-10",
+      "cusip": "91282CRX1",
+      "securityTerm": "10-Year",
+      "reopening": false,
+      "offering": 42000000000.0,
+      "highYield": 5.02,
+      "bidToCover": 2.46,
+      "indirectShare": 61.227335874571196,
+      "directShare": 29.00071550639216,
+      "dealerShare": 9.771948619036646,
+      "stress": 50.82403719928694,
       "shareBasis": "competitive-awards",
       "tail": null
     },
@@ -32365,6 +32397,22 @@
     }
   ],
   "auctionHistory": [
+    {
+      "term": "10-Year",
+      "auctionDate": "2026-11-10",
+      "cusip": "91282CRX1",
+      "securityTerm": "10-Year",
+      "reopening": false,
+      "offering": 42000000000.0,
+      "highYield": 5.02,
+      "bidToCover": 2.46,
+      "indirectShare": 61.227335874571196,
+      "directShare": 29.00071550639216,
+      "dealerShare": 9.771948619036646,
+      "stress": 50.82403719928694,
+      "shareBasis": "competitive-awards",
+      "tail": null
+    },
     {
       "term": "20-Year",
       "auctionDate": "2026-10-21",
@@ -36269,5 +36317,5 @@
     }
   },
   "errors": [],
-  "generatedAt": "2026-11-10T07:37:47Z"
+  "generatedAt": "2026-11-11T06:56:20Z"
 }
