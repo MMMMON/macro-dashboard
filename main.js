@@ -2,7 +2,7 @@
 
 const COLORS = ['#9d2933', '#315f8a', '#c28a1b', '#2b7a78', '#617a3f', '#765797', '#c45d48'];
 const PANELS = [
-  { id: 'crypto', title: 'BTC / ETH', subtitle: '数字资产 · 比特币与以太坊', keys: ['btc', 'eth'], axes: ['left', 'right'], labels: ['BTC · USD', 'ETH · USD'] },
+  { id: 'crypto', title: 'BTC / ETH / 黄金', subtitle: '比特币、以太坊与 COMEX 黄金期货', keys: ['btc', 'eth', 'gold'], axes: ['left', 'right', 'right'], labels: ['BTC · USD', 'ETH · USD / 黄金 · USD/盎司'] },
   { id: 'bonds-oil', title: '中美国债与原油', subtitle: '十年期国债收益率 × WTI 原油期货', keys: ['us10y', 'cn10y', 'oil'], axes: ['left', 'left', 'right'], labels: ['国债收益率 · %', '原油 · USD/桶'] },
   { id: 'sp500', title: '美股核心指数与半导体', subtitle: 'S&P 500 / QQQ / SOXX', keys: ['sp500', 'qqq', 'soxx'], normalized: true, axes: ['right', 'right', 'right'], labels: ['', '区间首个共同交易日 = 100'] },
   { id: 'gold-dollar', title: '黄金与美元', subtitle: 'COMEX 黄金期货 × 美元指数', keys: ['gold', 'dxy'], axes: ['left', 'right'], labels: ['黄金 · USD/盎司', 'DXY · 点'] },
