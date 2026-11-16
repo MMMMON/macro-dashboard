@@ -1,7 +1,7 @@
 {
   "weekStart": "2026-11-16",
   "weekEnd": "2026-11-22",
-  "generatedAt": "2026-11-15T07:19:17.301999Z",
+  "generatedAt": "2026-11-16T04:02:30.801487Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
@@ -145,20 +145,6 @@
       "tags": [
         "GBP",
         "inflation"
-      ]
-    },
-    {
-      "title": "BOE Gov Bailey Speaks",
-      "country": "GBP",
-      "impact": "High",
-      "forecast": "—",
-      "previous": "—",
-      "url": "",
-      "timestamp": "2026-11-18T07:30:00Z",
-      "allDay": false,
-      "tags": [
-        "GBP",
-        "high"
       ]
     },
     {
