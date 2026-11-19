@@ -5494,6 +5494,10 @@
       {
         "date": "2026-11-16",
         "value": 3.88
+      },
+      {
+        "date": "2026-11-17",
+        "value": 3.88
       }
     ],
     "THREEFYTP10": [
@@ -32380,10 +32384,10 @@
     ]
   },
   "debt": {
-    "date": "2026-11-16",
-    "heldByPublic": 32852881286592.8,
-    "intragovernmental": 7809536109024.63,
-    "total": 40662417395617.43
+    "date": "2026-11-17",
+    "heldByPublic": 32887006494499.79,
+    "intragovernmental": 7827939822073.55,
+    "total": 40714946316573.34
   },
   "averageInterest": {
     "date": "2026-10-31",
@@ -32409,17 +32413,17 @@
     },
     {
       "term": "20-Year",
-      "auctionDate": "2026-10-21",
-      "cusip": "912810UX4",
-      "securityTerm": "19-Year 10-Month",
-      "reopening": true,
-      "offering": 13000000000.0,
-      "highYield": 5.469,
-      "bidToCover": 2.73,
-      "indirectShare": 58.15601682394544,
-      "directShare": 31.587531180575258,
-      "dealerShare": 10.256451995479301,
-      "stress": 40.63753482379971,
+      "auctionDate": "2026-11-18",
+      "cusip": "912810UZ9",
+      "securityTerm": "20-Year",
+      "reopening": false,
+      "offering": 16000000000.0,
+      "highYield": 5.459,
+      "bidToCover": 2.63,
+      "indirectShare": 60.18468207845059,
+      "directShare": 26.740295018478143,
+      "dealerShare": 13.075022903071263,
+      "stress": 47.60692054838275,
       "shareBasis": "competitive-awards",
       "tail": null
     },
@@ -32441,6 +32445,22 @@
     }
   ],
   "auctionHistory": [
+    {
+      "term": "20-Year",
+      "auctionDate": "2026-11-18",
+      "cusip": "912810UZ9",
+      "securityTerm": "20-Year",
+      "reopening": false,
+      "offering": 16000000000.0,
+      "highYield": 5.459,
+      "bidToCover": 2.63,
+      "indirectShare": 60.18468207845059,
+      "directShare": 26.740295018478143,
+      "dealerShare": 13.075022903071263,
+      "stress": 47.60692054838275,
+      "shareBasis": "competitive-awards",
+      "tail": null
+    },
     {
       "term": "30-Year",
       "auctionDate": "2026-11-12",
@@ -36377,5 +36397,5 @@
     }
   },
   "errors": [],
-  "generatedAt": "2026-11-18T07:50:07Z"
+  "generatedAt": "2026-11-19T07:46:23Z"
 }
