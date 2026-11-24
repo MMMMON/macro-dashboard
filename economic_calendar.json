@@ -1,7 +1,7 @@
 {
   "weekStart": "2026-11-23",
   "weekEnd": "2026-11-29",
-  "generatedAt": "2026-11-22T07:36:04.791249Z",
+  "generatedAt": "2026-11-24T00:00:35.853248Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
@@ -163,7 +163,7 @@
       "title": "CB Consumer Confidence",
       "country": "USD",
       "impact": "Medium",
-      "forecast": "92.1",
+      "forecast": "92.4",
       "previous": "91.7",
       "url": "",
       "timestamp": "2026-11-24T15:00:00Z",
@@ -191,7 +191,7 @@
       "title": "CPI y/y",
       "country": "AUD",
       "impact": "High",
-      "forecast": "4.8%",
+      "forecast": "4.7%",
       "previous": "4.3%",
       "url": "",
       "timestamp": "2026-11-25T00:30:00Z",
@@ -275,23 +275,10 @@
       ]
     },
     {
-      "title": "Unemployment Claims",
-      "country": "USD",
-      "impact": "Medium",
-      "forecast": "201K",
-      "previous": "203K",
-      "url": "",
-      "timestamp": "2026-11-25T13:30:00Z",
-      "allDay": false,
-      "tags": [
-        "USD"
-      ]
-    },
-    {
       "title": "Tokyo Core CPI y/y",
       "country": "JPY",
       "impact": "Medium",
-      "forecast": "2.9%",
+      "forecast": "3.0%",
       "previous": "2.6%",
       "url": "",
       "timestamp": "2026-11-26T23:30:00Z",
@@ -305,7 +292,7 @@
       "title": "French Prelim CPI m/m",
       "country": "EUR",
       "impact": "Low",
-      "forecast": "-0.1%",
+      "forecast": "-0.2%",
       "previous": "0.4%",
       "url": "",
       "timestamp": "2026-11-27T07:45:00Z",
@@ -319,7 +306,7 @@
       "title": "Spanish Flash CPI y/y",
       "country": "EUR",
       "impact": "Low",
-      "forecast": "4.8%",
+      "forecast": "4.7%",
       "previous": "4.9%",
       "url": "",
       "timestamp": "2026-11-27T08:00:00Z",
