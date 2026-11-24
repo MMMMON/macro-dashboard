@@ -11812,7 +11812,7 @@
         },
         {
           "time": "2026-11-23",
-          "value": 80.389999
+          "value": 79.959999
         }
       ]
     },
@@ -14847,10 +14847,10 @@
       "source_url": "https://finance.yahoo.com/quote/QQQ/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -17868,10 +17868,10 @@
       "source_url": "https://finance.yahoo.com/quote/SOXX/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -23904,7 +23904,7 @@
         },
         {
           "time": "2026-11-23",
-          "value": 3622.399902
+          "value": 3663.699951
         }
       ]
     },
@@ -26933,7 +26933,7 @@
         },
         {
           "time": "2026-11-23",
-          "value": 104.317001
+          "value": 104.192001
         }
       ]
     },
@@ -26947,10 +26947,10 @@
       "source_url": "https://finance.yahoo.com/quote/AAPL/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -29968,10 +29968,10 @@
       "source_url": "https://finance.yahoo.com/quote/MSFT/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -32989,10 +32989,10 @@
       "source_url": "https://finance.yahoo.com/quote/NVDA/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -36010,10 +36010,10 @@
       "source_url": "https://finance.yahoo.com/quote/AMZN/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -39031,10 +39031,10 @@
       "source_url": "https://finance.yahoo.com/quote/GOOGL/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -42052,10 +42052,10 @@
       "source_url": "https://finance.yahoo.com/quote/META/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -45073,10 +45073,10 @@
       "source_url": "https://finance.yahoo.com/quote/TSLA/",
       "note": "日线复权收盘",
       "stale_business_days": 1,
-      "status": "ok",
+      "status": "cached",
       "stale": false,
       "last_date": "2026-11-23",
-      "message": null,
+      "message": "上游返回不完整，保留上次有效数据",
       "data": [
         {
           "time": "2023-11-27",
@@ -110896,7 +110896,7 @@
         "status": "unavailable",
         "stale": false,
         "last_date": null,
-        "message": "暂无可自动读取且允许再发布的官方公开序列",
+        "message": "Banca d'Italia BDS（源：MTS）暂不可用（ConnectTimeout）",
         "data": []
       },
       "it_1y": {
@@ -110911,7 +110911,7 @@
         "status": "unavailable",
         "stale": false,
         "last_date": null,
-        "message": "暂无可自动读取且允许再发布的官方公开序列",
+        "message": "Banca d'Italia BDS（源：MTS）暂不可用（ConnectTimeout）",
         "data": []
       },
       "it_5y": {
@@ -110923,10 +110923,10 @@
         "source_url": "https://a2a.bancaditalia.it/infostat/dataservices/export/EN/CSV/DATA/CUBE/BANKITALIA/DIFF/BMK0200",
         "stale_business_days": 2,
         "note": "意大利基准 BTP 到期收益率；央行按月发布日度观测。",
-        "status": "ok",
+        "status": "cached",
         "stale": true,
         "last_date": "2026-10-30",
-        "message": null,
+        "message": "Banca d'Italia BDS（源：MTS）暂不可用（ConnectTimeout）",
         "data": [
           {
             "time": "2023-11-27",
@@ -113895,10 +113895,10 @@
         "source_url": "https://a2a.bancaditalia.it/infostat/dataservices/export/EN/CSV/DATA/CUBE/BANKITALIA/DIFF/BMK0200",
         "stale_business_days": 2,
         "note": "意大利基准 BTP 到期收益率；央行按月发布日度观测。",
-        "status": "ok",
+        "status": "cached",
         "stale": true,
         "last_date": "2026-10-30",
-        "message": null,
+        "message": "Banca d'Italia BDS（源：MTS）暂不可用（ConnectTimeout）",
         "data": [
           {
             "time": "2023-11-27",
@@ -116867,10 +116867,10 @@
         "source_url": "https://a2a.bancaditalia.it/infostat/dataservices/export/EN/CSV/DATA/CUBE/BANKITALIA/DIFF/BMK0200",
         "stale_business_days": 2,
         "note": "意大利基准 BTP 到期收益率；央行按月发布日度观测。",
-        "status": "ok",
+        "status": "cached",
         "stale": true,
         "last_date": "2026-10-30",
-        "message": null,
+        "message": "Banca d'Italia BDS（源：MTS）暂不可用（ConnectTimeout）",
         "data": [
           {
             "time": "2023-11-27",
@@ -234792,5 +234792,5 @@
       "tbill": "近 14 个日历日净发行≥500 亿美元为强虹吸"
     }
   },
-  "generated_at": "2026-11-24T00:37:48+00:00"
+  "generated_at": "2026-11-24T02:17:23+00:00"
 }
