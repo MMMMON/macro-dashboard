@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "observed_date": "2026-11-20",
-  "captured_at": "2026-11-20T21:29:32Z",
+  "observed_date": "2026-11-24",
+  "captured_at": "2026-11-25T07:59:45Z",
   "source": "MacroMicro public US Overnight Indexed Swaps chart",
   "source_url": "https://sc.macromicro.me/charts/115044/us-overnight-indexed-swaps",
   "values": {
-    "1m": 4.04,
-    "3m": 4.2,
-    "6m": 4.35,
-    "1y": 4.56,
-    "2y": 4.59,
-    "10y": 4.62,
-    "30y": 4.73
+    "1m": 4.07,
+    "3m": 4.21,
+    "6m": 4.36,
+    "1y": 4.54,
+    "2y": 4.52,
+    "10y": 4.52,
+    "30y": 4.63
   },
   "usage": "view_only_reference",
   "note": "人工网页快照，仅供核对；不写入历史序列，不参与路径中枢或第一层条件判定。"
