@@ -1,7 +1,7 @@
 {
   "weekStart": "2026-11-23",
   "weekEnd": "2026-11-29",
-  "generatedAt": "2026-11-24T00:00:35.853248Z",
+  "generatedAt": "2026-11-26T00:00:29.078663Z",
   "timezone": "Europe/Berlin",
   "source": "https://nfs.faireconomy.media/ff_calendar_thisweek.json",
   "events": [
@@ -275,6 +275,19 @@
       ]
     },
     {
+      "title": "Monetary Policy Report Hearings",
+      "country": "GBP",
+      "impact": "Medium",
+      "forecast": "—",
+      "previous": "—",
+      "url": "",
+      "timestamp": "2026-11-25T14:15:00Z",
+      "allDay": false,
+      "tags": [
+        "GBP"
+      ]
+    },
+    {
       "title": "Tokyo Core CPI y/y",
       "country": "JPY",
       "impact": "Medium",
@@ -323,8 +336,8 @@
       "detail": "周三 14:30 美国Prelim GDP 季率；周三 14:30 美国核心 PCE 物价指数"
     },
     "policyFocus": {
-      "title": "本周无主要央行利率决议",
-      "detail": "重点转向数据对政策预期的影响"
+      "title": "英国Monetary Policy Report Hearings · 周三 15:15",
+      "detail": "关注声明与市场预期差"
     },
     "specialAttention": {
       "title": "美国核心 PCE 物价指数 · 周三 14:30",
